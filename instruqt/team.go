@@ -15,7 +15,14 @@
 package instruqt
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
+	"net/url"
 
 	"github.com/shurcooL/graphql"
 )
@@ -44,4 +51,61 @@ func (c *Client) GetTPGPublicKey() (string, error) {
 	}
 
 	return string(q.Team.TPGPublicKey), nil
+}
+
+// EncryptPII encrypts PII using the public key fetched from the GetTPGPublicKey function.
+// It takes a string representing the PII data, encodes it, and then encrypts it using RSA.
+func (c *Client) EncryptPII(encodedPII string) (string, error) {
+	// Fetch the public key using the GetTPGPublicKey function
+	publicKeyPEM, err := c.GetTPGPublicKey()
+	if err != nil {
+		return "", fmt.Errorf("failed to get public key: %v", err)
+	}
+
+	// Decode the PEM public key
+	block, _ := pem.Decode([]byte(publicKeyPEM))
+	if block == nil || block.Type != "RSA PUBLIC KEY" {
+		return "", fmt.Errorf("failed to decode PEM block containing public key")
+	}
+
+	// Parse the public key
+	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse DER encoded public key: %v", err)
+	}
+
+	// Assert the public key is of type *rsa.PublicKey
+	rsaPublicKey, ok := publicKey.(*rsa.PublicKey)
+	if !ok {
+		return "", fmt.Errorf("not an RSA public key")
+	}
+
+	// Encrypt the PII
+	hash := sha256.New()
+	encryptedPII, err := rsa.EncryptOAEP(hash, rand.Reader, rsaPublicKey, []byte(encodedPII), nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to encrypt PII: %v", err)
+	}
+
+	// Encode the encrypted data to base64
+	encryptedPIIBase64 := base64.StdEncoding.EncodeToString(encryptedPII)
+	return encryptedPIIBase64, nil
+}
+
+// EncryptUserPII creates PII data (first name, last name, and email) and encrypts it using the public key.
+func (c *Client) EncryptUserPII(firstName, lastName, email string) (string, error) {
+	// Prepare the PII data
+	piiData := url.Values{
+		"fn": {firstName},
+		"ln": {lastName},
+		"e":  {email},
+	}
+
+	// Encrypt the PII data
+	encryptedPII, err := c.EncryptPII(piiData.Encode())
+	if err != nil {
+		return "", err
+	}
+
+	return encryptedPII, nil
 }
