@@ -1,6 +1,6 @@
 # instruqt-go
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/isovalent/instruqt-go)](https://goreportcard.com/report/github.com/isovalent/instruqt-go)  
+[![Go Report Card](https://goreportcard.com/badge/github.com/isovalent/instruqt-go)](https://goreportcard.com/report/github.com/isovalent/instruqt-go)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 `instruqt-go` is a Go client library for interacting with the Instruqt platform. It provides a simple and convenient way to programmatically access Instruqt's APIs, manage content, retrieve user data and track information.
