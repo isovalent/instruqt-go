@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  test:
+  test-and-coverage:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,32 +19,12 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.18' # Specify your Go version here
+        go-version: '1.23' # Specify your Go version here
 
-    - name: Run tests and generate coverage report
-      run: go test ./... -coverprofile=coverage.out -covermode=atomic
+    - name: Run tests and generate coverage for PR
+      run: go test ./... -coverprofile=pr-coverage.out -covermode=atomic
 
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v3
-      with:
-        name: coverage
-        path: coverage.out
-
-  compare-coverage:
-    needs: test
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Download coverage report from the PR
-      uses: actions/download-artifact@v3
-      with:
-        name: coverage
-        path: ./pr-coverage.out
-
-    - name: Fetch coverage from base branch (e.g., main)
+    - name: Generate coverage report for main branch
       run: |
         git fetch origin main
         git checkout main
@@ -52,15 +32,18 @@ jobs:
 
     - name: Compare coverage and report
       run: |
+        # Generate coverage reports
         go tool cover -func=pr-coverage.out > pr-coverage.txt
         go tool cover -func=main-coverage.out > main-coverage.txt
-
+        
+        # Extract total coverage values
         pr_coverage=$(grep total: pr-coverage.txt | awk '{print $3}')
         main_coverage=$(grep total: main-coverage.txt | awk '{print $3}')
 
         echo "PR Coverage: $pr_coverage"
         echo "Main Branch Coverage: $main_coverage"
 
+        # Compare coverage
         pr_percentage=${pr_coverage%\%}
         main_percentage=${main_coverage%\%}
 
@@ -72,9 +55,8 @@ jobs:
           echo "Coverage is unchanged at $pr_coverage" > coverage-report.txt
         fi
 
-    - name: Post comment with coverage comparison
+    - name: Post coverage comparison in PR
       uses: marocchino/sticky-pull-request-comment@v2
       with:
         header: Coverage Report
         path: coverage-report.txt
-
