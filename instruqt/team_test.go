@@ -82,3 +82,34 @@ func TestEncryptPII(t *testing.T) {
 	// Ensure the encrypted PII is a non-empty string
 	assert.NotEmpty(t, encryptedPII)
 }
+
+func TestEncryptUserPII(t *testing.T) {
+	// Generate a temporary RSA key pair for testing
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	assert.NoError(t, err)
+
+	// Extract the public key and encode it in PEM format
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	assert.NoError(t, err)
+	publicKeyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	})
+
+	// Create the mock client
+	mockClient := new(MockGraphQLClient)
+	client := &Client{
+		GraphQLClient: mockClient,
+	}
+	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		query := args.Get(1).(*teamQuery)
+		query.Team.TPGPublicKey = graphql.String(publicKeyPEM)
+	}).Return(nil)
+
+	// Call the EncryptUserPII function
+	encryptedPII, err := client.EncryptUserPII("John", "Doe", "test@example.com")
+	assert.NoError(t, err)
+
+	// Ensure the encrypted PII is a non-empty string
+	assert.NotEmpty(t, encryptedPII)
+}

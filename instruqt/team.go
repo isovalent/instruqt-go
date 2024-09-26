@@ -22,6 +22,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"net/url"
 
 	"github.com/shurcooL/graphql"
 )
@@ -89,4 +90,22 @@ func (c *Client) EncryptPII(encodedPII string) (string, error) {
 	// Encode the encrypted data to base64
 	encryptedPIIBase64 := base64.StdEncoding.EncodeToString(encryptedPII)
 	return encryptedPIIBase64, nil
+}
+
+// EncryptUserPII creates PII data (first name, last name, and email) and encrypts it using the public key.
+func (c *Client) EncryptUserPII(firstName, lastName, email string) (string, error) {
+	// Prepare the PII data
+	piiData := url.Values{
+		"fn": {firstName},
+		"ln": {lastName},
+		"e":  {email},
+	}
+
+	// Encrypt the PII data
+	encryptedPII, err := c.EncryptPII(piiData.Encode())
+	if err != nil {
+		return "", err
+	}
+
+	return encryptedPII, nil
 }
