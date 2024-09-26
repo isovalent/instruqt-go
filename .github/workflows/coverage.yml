@@ -1,0 +1,62 @@
+name: Test and Coverage
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test-and-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23' # Specify your Go version here
+
+    - name: Run tests and generate coverage for PR
+      run: go test ./... -coverprofile=pr-coverage.out -covermode=atomic
+
+    - name: Generate coverage report for main branch
+      run: |
+        git fetch origin main
+        git checkout main
+        go test ./... -coverprofile=main-coverage.out -covermode=atomic
+
+    - name: Compare coverage and report
+      run: |
+        # Generate coverage reports
+        go tool cover -func=pr-coverage.out > pr-coverage.txt
+        go tool cover -func=main-coverage.out > main-coverage.txt
+        
+        # Extract total coverage values
+        pr_coverage=$(grep total: pr-coverage.txt | awk '{print $3}')
+        main_coverage=$(grep total: main-coverage.txt | awk '{print $3}')
+
+        echo "PR Coverage: $pr_coverage"
+        echo "Main Branch Coverage: $main_coverage"
+
+        # Compare coverage
+        pr_percentage=${pr_coverage%\%}
+        main_percentage=${main_coverage%\%}
+
+        if (( $(echo "$pr_percentage > $main_percentage" | bc -l) )); then
+          echo "Coverage has increased from $main_coverage to $pr_coverage 🎉" > coverage-report.txt
+        elif (( $(echo "$pr_percentage < $main_percentage" | bc -l) )); then
+          echo "Coverage has decreased from $main_coverage to $pr_coverage ⚠️" > coverage-report.txt
+        else
+          echo "Coverage is unchanged at $pr_coverage" > coverage-report.txt
+        fi
+
+    - name: Post coverage comparison in PR
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: Coverage Report
+        path: coverage-report.txt
