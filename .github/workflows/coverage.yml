@@ -1,0 +1,80 @@
+name: Test and Coverage
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.18' # Specify your Go version here
+
+    - name: Run tests and generate coverage report
+      run: go test ./... -coverprofile=coverage.out -covermode=atomic
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage
+        path: coverage.out
+
+  compare-coverage:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Download coverage report from the PR
+      uses: actions/download-artifact@v3
+      with:
+        name: coverage
+        path: ./pr-coverage.out
+
+    - name: Fetch coverage from base branch (e.g., main)
+      run: |
+        git fetch origin main
+        git checkout main
+        go test ./... -coverprofile=main-coverage.out -covermode=atomic
+
+    - name: Compare coverage and report
+      run: |
+        go tool cover -func=pr-coverage.out > pr-coverage.txt
+        go tool cover -func=main-coverage.out > main-coverage.txt
+
+        pr_coverage=$(grep total: pr-coverage.txt | awk '{print $3}')
+        main_coverage=$(grep total: main-coverage.txt | awk '{print $3}')
+
+        echo "PR Coverage: $pr_coverage"
+        echo "Main Branch Coverage: $main_coverage"
+
+        pr_percentage=${pr_coverage%\%}
+        main_percentage=${main_coverage%\%}
+
+        if (( $(echo "$pr_percentage > $main_percentage" | bc -l) )); then
+          echo "Coverage has increased from $main_coverage to $pr_coverage 🎉" > coverage-report.txt
+        elif (( $(echo "$pr_percentage < $main_percentage" | bc -l) )); then
+          echo "Coverage has decreased from $main_coverage to $pr_coverage ⚠️" > coverage-report.txt
+        else
+          echo "Coverage is unchanged at $pr_coverage" > coverage-report.txt
+        fi
+
+    - name: Post comment with coverage comparison
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: Coverage Report
+        path: coverage-report.txt
+
