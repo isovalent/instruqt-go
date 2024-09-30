@@ -15,74 +15,144 @@
 package instruqt
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
+	"github.com/shurcooL/graphql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-func TestGetPlays(t *testing.T) {
+func TestGetPlays_NoFilters(t *testing.T) {
 	mockClient := new(MockGraphQLClient)
 	client := &Client{
 		GraphQLClient: mockClient,
+		TeamSlug:      "isovalent",
+		Context:       context.Background(),
 	}
 
-	// Define input parameters
-	from := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
-	to := time.Date(2023, 1, 31, 23, 59, 59, 0, time.UTC)
-	take := 10
-	skip := 0
-
-	// Define expected PlayReports
-	expectedPlays := []PlayReport{
-		{
-			Id: "play-123",
-			Track: struct{ Id string }{
-				Id: "track-123",
-			},
-			CompletionPercent:   100,
-			TotalChallenges:     5,
-			CompletedChallenges: 5,
-			TimeSpent:           120,
-			Mode:                "NORMAL",
-			StartedAt:           time.Date(2023, 1, 15, 12, 0, 0, 0, time.UTC),
-		},
-		{
-			Id: "play-456",
-			Track: struct{ Id string }{
-				Id: "track-456",
-			},
-			CompletionPercent:   75,
-			TotalChallenges:     4,
-			CompletedChallenges: 3,
-			TimeSpent:           90,
-			Mode:                "DEVELOPER",
-			StartedAt:           time.Date(2023, 1, 20, 15, 30, 0, 0, time.UTC),
-		},
-	}
-
-	queryResult := playQuery{
+	mockResponse := playQuery{
 		PlayReports: PlayReports{
-			Items:      expectedPlays,
-			TotalItems: len(expectedPlays),
+			Items:      []PlayReport{{Id: "play-1"}},
+			TotalItems: 1,
 		},
 	}
 
-	// Set up the mock expectation
-	mockClient.On("Query", mock.Anything, &playQuery{}, mock.Anything).Run(func(args mock.Arguments) {
-		q := args.Get(1).(*playQuery)
-		*q = queryResult
-	}).Return(nil)
+	// Mock the query method for the GraphQL client
+	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		vars := args.Get(2).(map[string]interface{})
 
-	// Call the method
-	plays, totalItems, err := client.GetPlays(from, to, take, skip)
+		// Check default play type is "ALL"
+		assert.Equal(t, PlayTypeAll, vars["playType"])
 
-	// Assertions
+		// Ensure no filters are passed
+		assert.Empty(t, vars["trackIds"])
+		assert.Empty(t, vars["trackInviteIds"])
+	}).Return(nil).Once()
+
+	// Execute with no filters
+	from := time.Now().AddDate(0, 0, -30) // 30 days ago
+	to := time.Now()
+	plays, totalItems, err := client.GetPlays(from, to, 10, 0, nil)
+
+	// Assert the results
 	assert.NoError(t, err)
-	assert.Equal(t, expectedPlays, plays)
-	assert.Equal(t, len(expectedPlays), totalItems)
+	assert.Equal(t, 1, totalItems)
+	assert.Equal(t, "play-1", plays[0].Id)
+
+	// Ensure the mock expectations are met
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetPlays_WithFilters(t *testing.T) {
+	mockClient := new(MockGraphQLClient)
+	client := &Client{
+		GraphQLClient: mockClient,
+		TeamSlug:      "isovalent",
+		Context:       context.Background(),
+	}
+
+	mockResponse := playQuery{
+		PlayReports: PlayReports{
+			Items:      []PlayReport{{Id: "play-2"}},
+			TotalItems: 1,
+		},
+	}
+
+	// Mock the query method for the GraphQL client
+	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		vars := args.Get(2).(map[string]interface{})
+
+		// Check that the play type and filters are set correctly
+		assert.Equal(t, PlayTypeDeveloper, vars["playType"])
+		assert.Equal(t, []graphql.String{graphql.String("track-1")}, vars["trackIds"])
+	}).Return(nil).Once()
+
+	// Define filters to pass into the method
+	filters := &PlayReportFilter{
+		TrackIDs: []string{"track-1"},
+		PlayType: PlayTypeDeveloper,
+	}
+
+	// Execute with filters
+	from := time.Now().AddDate(0, 0, -30) // 30 days ago
+	to := time.Now()
+	plays, totalItems, err := client.GetPlays(from, to, 10, 0, filters)
+
+	// Assert the results
+	assert.NoError(t, err)
+	assert.Equal(t, 1, totalItems)
+	assert.Equal(t, "play-2", plays[0].Id)
+
+	// Ensure the mock expectations are met
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetPlays_WithPartialFilters(t *testing.T) {
+	mockClient := new(MockGraphQLClient)
+	client := &Client{
+		GraphQLClient: mockClient,
+		TeamSlug:      "isovalent",
+		Context:       context.Background(),
+	}
+
+	mockResponse := playQuery{
+		PlayReports: PlayReports{
+			Items:      []PlayReport{{Id: "play-3"}},
+			TotalItems: 1,
+		},
+	}
+
+	// Mock the query method for the GraphQL client
+	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		vars := args.Get(2).(map[string]interface{})
+
+		// Check default play type is applied
+		assert.Equal(t, PlayTypeAll, vars["playType"])
+
+		// Ensure that track filters are applied correctly
+		assert.Equal(t, []graphql.String{graphql.String("track-2")}, vars["trackIds"])
+		assert.Empty(t, vars["trackInviteIds"])
+	}).Return(nil).Once()
+
+	// Define filters (only partial filters)
+	filters := &PlayReportFilter{
+		TrackIDs: []string{"track-2"},
+	}
+
+	// Execute with partial filters
+	from := time.Now().AddDate(0, 0, -30) // 30 days ago
+	to := time.Now()
+	plays, totalItems, err := client.GetPlays(from, to, 10, 0, filters)
+
+	// Assert the results
+	assert.NoError(t, err)
+	assert.Equal(t, 1, totalItems)
+	assert.Equal(t, "play-3", plays[0].Id)
+
+	// Ensure the mock expectations are met
 	mockClient.AssertExpectations(t)
 }
 

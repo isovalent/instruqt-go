@@ -21,19 +21,43 @@ import (
 )
 
 // playType defines a custom type for play modes on Instruqt.
-type playType string
+type PlayType string
 
 // Constants representing different types of plays.
 const (
-	PlayTypeAll       playType = "ALL"       // Represents all play types.
-	PlayTypeDeveloper playType = "DEVELOPER" // Represents developer-specific play types.
-	PlayTypeNormal    playType = "NORMAL"    // Represents normal play types.
+	PlayTypeAll       PlayType = "ALL"       // Represents all play types.
+	PlayTypeDeveloper PlayType = "DEVELOPER" // Represents developer-specific play types.
+	PlayTypeNormal    PlayType = "NORMAL"    // Represents normal play types.
 )
 
 // playQuery represents the GraphQL query structure for retrieving play reports
 // with specific filters like team slug, date range, and pagination.
 type playQuery struct {
-	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, pagination: {skip: $skip, take: $take}})"`
+	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, trackIds: $trackIds, trackInviteIds: $trackInviteIds, landingPageIds: $landingPageIds, tags: $tags, customParameterFilters: $customParameterFilters, userIds: $userIds, ordering: $ordering, pagination: {skip: $skip, take: $take}, playType: $playType})"`
+}
+
+// PlayReportFilter defines the optional filters for fetching play reports.
+type PlayReportFilter struct {
+	TrackIDs               []string
+	TrackInviteIDs         []string
+	LandingPageIDs         []string
+	Tags                   []string
+	CustomParameterFilters []CustomParameterFilter
+	UserIDs                []string
+	Ordering               Ordering
+	PlayType               PlayType
+}
+
+// CustomParameterFilter defines the filter for custom parameters in plays
+type CustomParameterFilter struct {
+	Key   string
+	Value string
+}
+
+// Ordering represents the sorting parameters for plays.
+type Ordering struct {
+	Field     string
+	Direction string // ASC or DESC
 }
 
 // PlayReports represents a collection of play reports retrieved from Instruqt.
@@ -51,9 +75,7 @@ type PlayReport struct {
 	TrackInvite struct {
 		Id string // The unique identifier of the track invite associated with the play.
 	}
-	User struct {
-		Id string // The unique identifier of the user associated with the play.
-	}
+	User User // The user that played the play.
 
 	CompletionPercent   float64   // The percentage of the play that has been completed.
 	TotalChallenges     int       // The total number of challenges in the play.
@@ -88,18 +110,71 @@ type PlayReport struct {
 //   - to: The end date of the date range filter.
 //   - take: The number of play reports to retrieve in one call.
 //   - skip: The number of play reports to skip before starting to retrieve.
+//   - filters: Optional filters to apply to the query.
 //
 // Returns:
 //   - []PlayReport: A list of play reports that match the given criteria.
 //   - int: The total number of play reports available for the given criteria.
 //   - error: Any error encountered while retrieving the play reports.
-func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int) (plays []PlayReport, totalItems int, err error) {
+func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, filters *PlayReportFilter) (plays []PlayReport, totalItems int, err error) {
+	var trackIds, trackInviteIds, landingPageIds, tags, userIds []graphql.String
+	var customParameterFilters []CustomParameterFilter
+	var playType = PlayTypeAll
+
+	// Map filters to GraphQL compatible types if they are provided
+	if filters != nil {
+		for _, id := range filters.TrackIDs {
+			trackIds = append(trackIds, graphql.String(id))
+		}
+		for _, inviteID := range filters.TrackInviteIDs {
+			trackInviteIds = append(trackInviteIds, graphql.String(inviteID))
+		}
+		for _, pageID := range filters.LandingPageIDs {
+			landingPageIds = append(landingPageIds, graphql.String(pageID))
+		}
+		for _, tag := range filters.Tags {
+			tags = append(tags, graphql.String(tag))
+		}
+		for _, userID := range filters.UserIDs {
+			userIds = append(userIds, graphql.String(userID))
+		}
+		customParameterFilters = filters.CustomParameterFilters
+
+		if filters.PlayType != "" {
+			playType = filters.PlayType
+		}
+	}
+
+	// Define ordering as a GraphQL compatible map if provided
+	var ordering *Ordering
+	if filters != nil && filters.Ordering.Field != "" {
+		ordering = &Ordering{
+			Field:     filters.Ordering.Field,
+			Direction: filters.Ordering.Direction,
+		}
+	} else {
+		// Optionally provide a default ordering (e.g., by "StartedAt" in descending order)
+		ordering = &Ordering{
+			Field:     "StartedAt",
+			Direction: "DESC",
+		}
+	}
+
+	// Pass the filters to the GraphQL query variables
 	variables := map[string]interface{}{
-		"teamSlug": graphql.String(c.TeamSlug),
-		"from":     from,
-		"to":       to,
-		"take":     graphql.Int(take),
-		"skip":     graphql.Int(skip),
+		"teamSlug":               graphql.String(c.TeamSlug),
+		"from":                   from,
+		"to":                     to,
+		"trackIds":               trackIds,
+		"trackInviteIds":         trackInviteIds,
+		"landingPageIds":         landingPageIds,
+		"tags":                   tags,
+		"customParameterFilters": customParameterFilters,
+		"userIds":                userIds,
+		"ordering":               ordering,
+		"take":                   graphql.Int(take),
+		"skip":                   graphql.Int(skip),
+		"playType":               playType,
 	}
 
 	var q playQuery
