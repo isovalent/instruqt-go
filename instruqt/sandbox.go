@@ -32,6 +32,11 @@ type SandboxVar struct {
 	Value string // The value of the sandbox variable.
 }
 
+// sandboxQuery represents the GraphQL query structure for a single sandbox by its ID
+type sandboxQuery struct {
+	Sandbox Sandbox `graphql:"sandbox(ID: $id)"`
+}
+
 // sandboxesQuery represents the GraphQL query structure for retrieving all sandboxes
 // associated with a specific team.
 type sandboxesQuery struct {
@@ -47,6 +52,7 @@ type Sandbox struct {
 	State            string       // The current state of the sandbox (e.g., "running", "stopped").
 	Track            SandboxTrack // The track associated with the sandbox.
 	Invite           TrackInvite  // The invite details associated with the sandbox.
+	User             User         // The user running the sandbox.
 }
 
 // GetSandboxVariable retrieves a specific variable from a sandbox environment
@@ -78,6 +84,25 @@ func (c *Client) GetSandboxVariable(playID string, key string) (v string, err er
 	}
 
 	return q.GetSandboxVariable.Value, nil
+}
+
+// GetSandbox retrieves a sandbox by its ID.
+//
+// Returns:
+//   - Sandbox: The sandbox.
+//   - error: Any error encountered while retrieving the sandbox.
+func (c *Client) GetSandbox(id string) (s Sandbox, err error) {
+	var q sandboxQuery
+	variables := map[string]interface{}{
+		"id":       graphql.ID(id),
+		"teamSlug": graphql.String(c.TeamSlug), // Pass teamSlug for User info
+	}
+
+	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+		return s, err
+	}
+
+	return q.Sandbox, nil
 }
 
 // GetSandboxes retrieves all sandboxes associated with the team slug defined in the client.

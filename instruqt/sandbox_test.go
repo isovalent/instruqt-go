@@ -15,6 +15,7 @@
 package instruqt
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -68,6 +69,45 @@ func TestGetSandboxVariable_Error(t *testing.T) {
 	assert.Error(t, err)
 	assert.Empty(t, value)
 	assert.Contains(t, err.Error(), "graphql error")
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetSandbox(t *testing.T) {
+	// Create a mock GraphQL client
+	mockClient := new(MockGraphQLClient)
+	client := &Client{
+		GraphQLClient: mockClient,
+		Context:       context.Background(),
+		TeamSlug:      "isovalent", // Include a teamSlug in the client
+	}
+
+	// Define the expected sandbox response
+	expectedSandbox := Sandbox{
+		Last_Activity_At: time.Now(),
+		State:            "active",
+		Track: SandboxTrack{
+			Id:    "track-123",
+			Title: "Test Track",
+		},
+		Invite: TrackInvite{
+			Id: "invite-123",
+		},
+	}
+
+	// Set up the mock to return the expected sandbox data
+	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		query := args.Get(1).(*sandboxQuery)
+		query.Sandbox = expectedSandbox
+	}).Return(nil)
+
+	// Call the GetSandbox method
+	sandbox, err := client.GetSandbox("sandbox-123")
+
+	// Validate the results
+	assert.NoError(t, err)
+	assert.Equal(t, expectedSandbox, sandbox)
+
+	// Ensure the mock expectations are met
 	mockClient.AssertExpectations(t)
 }
 
