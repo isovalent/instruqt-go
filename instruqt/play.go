@@ -33,31 +33,17 @@ const (
 // playQuery represents the GraphQL query structure for retrieving play reports
 // with specific filters like team slug, date range, and pagination.
 type playQuery struct {
-	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, trackIds: $trackIds, trackInviteIds: $trackInviteIds, landingPageIds: $landingPageIds, tags: $tags, customParameterFilters: $customParameterFilters, userIds: $userIds, ordering: $ordering, pagination: {skip: $skip, take: $take}, playType: $playType})"`
+	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, trackIds: $trackIds, trackInviteIds: $trackInviteIds, landingPageIds: $landingPageIds, tags: $tags,  userIds: $userIds, pagination: {skip: $skip, take: $take}, playType: $playType})"`
 }
 
 // PlayReportFilter defines the optional filters for fetching play reports.
 type PlayReportFilter struct {
-	TrackIDs               []string
-	TrackInviteIDs         []string
-	LandingPageIDs         []string
-	Tags                   []string
-	CustomParameterFilters []CustomParameterFilter
-	UserIDs                []string
-	Ordering               Ordering
-	PlayType               PlayType
-}
-
-// CustomParameterFilter defines the filter for custom parameters in plays
-type CustomParameterFilter struct {
-	Key   string
-	Value string
-}
-
-// Ordering represents the sorting parameters for plays.
-type Ordering struct {
-	Field     string
-	Direction string // ASC or DESC
+	TrackIDs       []string
+	TrackInviteIDs []string
+	LandingPageIDs []string
+	Tags           []string
+	UserIDs        []string
+	PlayType       PlayType
 }
 
 // PlayReports represents a collection of play reports retrieved from Instruqt.
@@ -117,9 +103,15 @@ type PlayReport struct {
 //   - int: The total number of play reports available for the given criteria.
 //   - error: Any error encountered while retrieving the play reports.
 func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, filters *PlayReportFilter) (plays []PlayReport, totalItems int, err error) {
-	var trackIds, trackInviteIds, landingPageIds, tags, userIds []graphql.String
-	var customParameterFilters []CustomParameterFilter
-	var playType = PlayTypeAll
+	// Initialize the slices as empty to avoid sending `null` to the GraphQL API
+	trackIds := []graphql.String{}
+	trackInviteIds := []graphql.String{}
+	landingPageIds := []graphql.String{}
+	tags := []graphql.String{}
+	userIds := []graphql.String{}
+
+	// If no filters are passed, the function will retrieve all plays (PlayTypeAll) for the given date range.
+	playType := PlayTypeAll
 
 	// Map filters to GraphQL compatible types if they are provided
 	if filters != nil {
@@ -138,43 +130,25 @@ func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, filt
 		for _, userID := range filters.UserIDs {
 			userIds = append(userIds, graphql.String(userID))
 		}
-		customParameterFilters = filters.CustomParameterFilters
 
 		if filters.PlayType != "" {
 			playType = filters.PlayType
 		}
 	}
 
-	// Define ordering as a GraphQL compatible map if provided
-	var ordering *Ordering
-	if filters != nil && filters.Ordering.Field != "" {
-		ordering = &Ordering{
-			Field:     filters.Ordering.Field,
-			Direction: filters.Ordering.Direction,
-		}
-	} else {
-		// Optionally provide a default ordering (e.g., by "StartedAt" in descending order)
-		ordering = &Ordering{
-			Field:     "StartedAt",
-			Direction: "DESC",
-		}
-	}
-
 	// Pass the filters to the GraphQL query variables
 	variables := map[string]interface{}{
-		"teamSlug":               graphql.String(c.TeamSlug),
-		"from":                   from,
-		"to":                     to,
-		"trackIds":               trackIds,
-		"trackInviteIds":         trackInviteIds,
-		"landingPageIds":         landingPageIds,
-		"tags":                   tags,
-		"customParameterFilters": customParameterFilters,
-		"userIds":                userIds,
-		"ordering":               ordering,
-		"take":                   graphql.Int(take),
-		"skip":                   graphql.Int(skip),
-		"playType":               playType,
+		"teamSlug":       graphql.String(c.TeamSlug),
+		"from":           from,
+		"to":             to,
+		"trackIds":       trackIds,
+		"trackInviteIds": trackInviteIds,
+		"landingPageIds": landingPageIds,
+		"tags":           tags,
+		"userIds":        userIds,
+		"take":           graphql.Int(take),
+		"skip":           graphql.Int(skip),
+		"playType":       playType,
 	}
 
 	var q playQuery
