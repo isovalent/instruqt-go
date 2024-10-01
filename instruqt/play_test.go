@@ -44,6 +44,9 @@ func TestGetPlays_NoFilters(t *testing.T) {
 	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		vars := args.Get(2).(map[string]interface{})
 
+		q := args.Get(1).(*playQuery)
+		*q = mockResponse
+
 		// Check default play type is "ALL"
 		assert.Equal(t, PlayTypeAll, vars["playType"])
 
@@ -84,6 +87,9 @@ func TestGetPlays_WithFilters(t *testing.T) {
 	// Mock the query method for the GraphQL client
 	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		vars := args.Get(2).(map[string]interface{})
+
+		q := args.Get(1).(*playQuery)
+		*q = mockResponse
 
 		// Check that the play type and filters are set correctly
 		assert.Equal(t, PlayTypeDeveloper, vars["playType"])
@@ -129,6 +135,9 @@ func TestGetPlays_WithPartialFilters(t *testing.T) {
 	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		vars := args.Get(2).(map[string]interface{})
 
+		q := args.Get(1).(*playQuery)
+		*q = mockResponse
+
 		// Check default play type is applied
 		assert.Equal(t, PlayTypeAll, vars["playType"])
 
@@ -171,7 +180,7 @@ func TestGetPlays_Error(t *testing.T) {
 	mockClient.On("Query", mock.Anything, &playQuery{}, mock.Anything).Return(errors.New("graphql error"))
 
 	// Call the method
-	plays, totalItems, err := client.GetPlays(from, to, take, skip)
+	plays, totalItems, err := client.GetPlays(from, to, take, skip, nil)
 
 	// Assertions
 	assert.Error(t, err)
