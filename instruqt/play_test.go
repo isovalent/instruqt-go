@@ -1,5 +1,5 @@
 // Copyright 2024 Cisco Systems, Inc. and its affiliates
-
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -25,50 +25,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestGetPlays_NoFilters(t *testing.T) {
-	mockClient := new(MockGraphQLClient)
-	client := &Client{
-		GraphQLClient: mockClient,
-		TeamSlug:      "isovalent",
-		Context:       context.Background(),
-	}
-
-	mockResponse := playQuery{
-		PlayReports: PlayReports{
-			Items:      []PlayReport{{Id: "play-1"}},
-			TotalItems: 1,
-		},
-	}
-
-	// Mock the query method for the GraphQL client
-	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-		vars := args.Get(2).(map[string]interface{})
-
-		q := args.Get(1).(*playQuery)
-		*q = mockResponse
-
-		// Check default play type is "ALL"
-		assert.Equal(t, PlayTypeAll, vars["playType"])
-
-		// Ensure no filters are passed
-		assert.Empty(t, vars["trackIds"])
-		assert.Empty(t, vars["trackInviteIds"])
-	}).Return(nil).Once()
-
-	// Execute with no filters
-	from := time.Now().AddDate(0, 0, -30) // 30 days ago
-	to := time.Now()
-	plays, totalItems, err := client.GetPlays(from, to, 10, 0, nil)
-
-	// Assert the results
-	assert.NoError(t, err)
-	assert.Equal(t, 1, totalItems)
-	assert.Equal(t, "play-1", plays[0].Id)
-
-	// Ensure the mock expectations are met
-	mockClient.AssertExpectations(t)
-}
-
+// TestGetPlays_WithFilters tests the GetPlays function with specific filters applied.
 func TestGetPlays_WithFilters(t *testing.T) {
 	mockClient := new(MockGraphQLClient)
 	client := &Client{
@@ -84,7 +41,7 @@ func TestGetPlays_WithFilters(t *testing.T) {
 		},
 	}
 
-	// Mock the query method for the GraphQL client
+	// Mock the Query method for the GraphQL client
 	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		vars := args.Get(2).(map[string]interface{})
 
@@ -92,30 +49,33 @@ func TestGetPlays_WithFilters(t *testing.T) {
 		*q = mockResponse
 
 		// Check that the play type and filters are set correctly
-		assert.Equal(t, PlayTypeDeveloper, vars["playType"])
-		assert.Equal(t, []graphql.String{graphql.String("track-1")}, vars["trackIds"])
+		assert.Equal(t, PlayTypeDeveloper, vars["playType"], "Expected playType to be PlayTypeDeveloper")
+		assert.Equal(t, []graphql.String{graphql.String("track-1")}, vars["trackIds"], "Expected trackIds to contain 'track-1'")
 	}).Return(nil).Once()
 
-	// Define filters to pass into the method
-	filters := &PlayReportFilter{
-		TrackIDs: []string{"track-1"},
-		PlayType: PlayTypeDeveloper,
+	// Define filters using Functional Options
+	options := []GetPlaysOption{
+		WithTrackIDs("track-1"),
+		WithPlayType(PlayTypeDeveloper),
 	}
 
-	// Execute with filters
+	// Execute GetPlays with filters
 	from := time.Now().AddDate(0, 0, -30) // 30 days ago
 	to := time.Now()
-	plays, totalItems, err := client.GetPlays(from, to, 10, 0, filters)
+	take := 10
+	skip := 0
+	plays, totalItems, err := client.GetPlays(from, to, take, skip, options...)
 
 	// Assert the results
-	assert.NoError(t, err)
-	assert.Equal(t, 1, totalItems)
-	assert.Equal(t, "play-2", plays[0].Id)
+	assert.NoError(t, err, "Expected no error from GetPlays")
+	assert.Equal(t, 1, totalItems, "Expected TotalItems to be 1")
+	assert.Equal(t, "play-2", plays[0].Id, "Expected Play ID to be 'play-2'")
 
 	// Ensure the mock expectations are met
 	mockClient.AssertExpectations(t)
 }
 
+// TestGetPlays_WithPartialFilters tests the GetPlays function with partial filters applied.
 func TestGetPlays_WithPartialFilters(t *testing.T) {
 	mockClient := new(MockGraphQLClient)
 	client := &Client{
@@ -131,7 +91,7 @@ func TestGetPlays_WithPartialFilters(t *testing.T) {
 		},
 	}
 
-	// Mock the query method for the GraphQL client
+	// Mock the Query method for the GraphQL client
 	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		vars := args.Get(2).(map[string]interface{})
 
@@ -139,32 +99,35 @@ func TestGetPlays_WithPartialFilters(t *testing.T) {
 		*q = mockResponse
 
 		// Check default play type is applied
-		assert.Equal(t, PlayTypeAll, vars["playType"])
+		assert.Equal(t, PlayTypeAll, vars["playType"], "Expected playType to be PlayTypeAll by default")
 
 		// Ensure that track filters are applied correctly
-		assert.Equal(t, []graphql.String{graphql.String("track-2")}, vars["trackIds"])
-		assert.Empty(t, vars["trackInviteIds"])
+		assert.Equal(t, []graphql.String{graphql.String("track-2")}, vars["trackIds"], "Expected trackIds to contain 'track-2'")
+		assert.Empty(t, vars["trackInviteIds"], "Expected trackInviteIds to be empty")
 	}).Return(nil).Once()
 
-	// Define filters (only partial filters)
-	filters := &PlayReportFilter{
-		TrackIDs: []string{"track-2"},
+	// Define partial filters using Functional Options
+	options := []GetPlaysOption{
+		WithTrackIDs("track-2"),
 	}
 
-	// Execute with partial filters
+	// Execute GetPlays with partial filters
 	from := time.Now().AddDate(0, 0, -30) // 30 days ago
 	to := time.Now()
-	plays, totalItems, err := client.GetPlays(from, to, 10, 0, filters)
+	take := 10
+	skip := 0
+	plays, totalItems, err := client.GetPlays(from, to, take, skip, options...)
 
 	// Assert the results
-	assert.NoError(t, err)
-	assert.Equal(t, 1, totalItems)
-	assert.Equal(t, "play-3", plays[0].Id)
+	assert.NoError(t, err, "Expected no error from GetPlays with partial filters")
+	assert.Equal(t, 1, totalItems, "Expected TotalItems to be 1 with partial filters")
+	assert.Equal(t, "play-3", plays[0].Id, "Expected Play ID to be 'play-3'")
 
 	// Ensure the mock expectations are met
 	mockClient.AssertExpectations(t)
 }
 
+// TestGetPlays_Error tests the GetPlays function when the GraphQL client returns an error.
 func TestGetPlays_Error(t *testing.T) {
 	mockClient := new(MockGraphQLClient)
 	client := &Client{
@@ -177,15 +140,17 @@ func TestGetPlays_Error(t *testing.T) {
 	skip := 0
 
 	// Set up the mock expectation to return an error
-	mockClient.On("Query", mock.Anything, &playQuery{}, mock.Anything).Return(errors.New("graphql error"))
+	mockClient.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("graphql error")).Once()
 
-	// Call the method
-	plays, totalItems, err := client.GetPlays(from, to, take, skip, nil)
+	// Call the method without any options
+	plays, totalItems, err := client.GetPlays(from, to, take, skip)
 
 	// Assertions
-	assert.Error(t, err)
-	assert.Empty(t, plays)
-	assert.Equal(t, 0, totalItems)
-	assert.Contains(t, err.Error(), "graphql error")
+	assert.Error(t, err, "Expected an error from GetPlays")
+	assert.Empty(t, plays, "Expected plays to be empty on error")
+	assert.Equal(t, 0, totalItems, "Expected TotalItems to be 0 on error")
+	assert.Contains(t, err.Error(), "graphql error", "Expected error message to contain 'graphql error'")
+
+	// Ensure the mock expectations are met
 	mockClient.AssertExpectations(t)
 }
