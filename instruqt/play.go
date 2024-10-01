@@ -55,8 +55,8 @@ type PlayReports struct {
 
 // PlayReport represents the data structure for a single play report on Instruqt.
 type PlayReport struct {
-	Id    string // The unique identifier for the play report.
-	Track Track  // The track played.
+	Id    string       // The unique identifier for the play report.
+	Track SandboxTrack // The track played.
 
 	TrackInvite TrackInvite // The optional Track invite associated to the play.
 
