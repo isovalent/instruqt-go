@@ -29,6 +29,7 @@ type userInfoQuery struct {
 
 // User represents the data structure for an Instruqt user.
 type User struct {
+	Id      string
 	Details struct { // Detailed user information associated with a specific team.
 		FirstName graphql.String // The first name of the user.
 		LastName  graphql.String // The last name of the user.

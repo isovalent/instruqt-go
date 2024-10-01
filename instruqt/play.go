@@ -15,25 +15,36 @@
 package instruqt
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/shurcooL/graphql"
 )
 
 // playType defines a custom type for play modes on Instruqt.
-type playType string
+type PlayType string
 
 // Constants representing different types of plays.
 const (
-	PlayTypeAll       playType = "ALL"       // Represents all play types.
-	PlayTypeDeveloper playType = "DEVELOPER" // Represents developer-specific play types.
-	PlayTypeNormal    playType = "NORMAL"    // Represents normal play types.
+	PlayTypeAll       PlayType = "ALL"       // Represents all play types.
+	PlayTypeDeveloper PlayType = "DEVELOPER" // Represents developer-specific play types.
+	PlayTypeNormal    PlayType = "NORMAL"    // Represents normal play types.
 )
 
 // playQuery represents the GraphQL query structure for retrieving play reports
 // with specific filters like team slug, date range, and pagination.
 type playQuery struct {
-	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, pagination: {skip: $skip, take: $take}})"`
+	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, trackIds: $trackIds, trackInviteIds: $trackInviteIds, landingPageIds: $landingPageIds, tags: $tags,  userIds: $userIds, pagination: {skip: $skip, take: $take}, playType: $playType})"`
+}
+
+// PlayReportFilter defines the optional filters for fetching play reports.
+type PlayReportFilter struct {
+	TrackIDs       []string
+	TrackInviteIDs []string
+	LandingPageIDs []string
+	Tags           []string
+	UserIDs        []string
+	PlayType       PlayType
 }
 
 // PlayReports represents a collection of play reports retrieved from Instruqt.
@@ -45,15 +56,11 @@ type PlayReports struct {
 // PlayReport represents the data structure for a single play report on Instruqt.
 type PlayReport struct {
 	Id    string // The unique identifier for the play report.
-	Track struct {
-		Id string // The unique identifier of the track associated with the play.
-	}
-	TrackInvite struct {
-		Id string // The unique identifier of the track invite associated with the play.
-	}
-	User struct {
-		Id string // The unique identifier of the user associated with the play.
-	}
+	Track Track  // The track played.
+
+	TrackInvite TrackInvite // The optional Track invite associated to the play.
+
+	User User // The user that played the play.
 
 	CompletionPercent   float64   // The percentage of the play that has been completed.
 	TotalChallenges     int       // The total number of challenges in the play.
@@ -80,6 +87,44 @@ type PlayReport struct {
 	}
 }
 
+// GetPlaysOption defines a function type that modifies PlayReportFilter
+type GetPlaysOption func(*PlayReportFilter)
+
+// WithTrackIDs sets the TrackIDs filter
+func WithTrackIDs(ids ...string) GetPlaysOption {
+	return func(f *PlayReportFilter) {
+		f.TrackIDs = ids
+	}
+}
+
+// WithTrackInviteIDs sets the TrackInviteIDs filter
+func WithTrackInviteIDs(ids ...string) GetPlaysOption {
+	return func(f *PlayReportFilter) {
+		f.TrackInviteIDs = ids
+	}
+}
+
+// WithTags sets the Tags filter
+func WithTags(tags ...string) GetPlaysOption {
+	return func(f *PlayReportFilter) {
+		f.Tags = tags
+	}
+}
+
+// WithUserIDs sets the UserIDs filter
+func WithUserIDs(ids ...string) GetPlaysOption {
+	return func(f *PlayReportFilter) {
+		f.UserIDs = ids
+	}
+}
+
+// WithPlayType sets the PlayType filter
+func WithPlayType(pt PlayType) GetPlaysOption {
+	return func(f *PlayReportFilter) {
+		f.PlayType = pt
+	}
+}
+
 // GetPlays retrieves a list of play reports from Instruqt for the specified team,
 // within a given date range, and using pagination parameters.
 //
@@ -88,24 +133,76 @@ type PlayReport struct {
 //   - to: The end date of the date range filter.
 //   - take: The number of play reports to retrieve in one call.
 //   - skip: The number of play reports to skip before starting to retrieve.
+//   - opts: A variadic number of GetPlaysOption to configure the query.
 //
 // Returns:
 //   - []PlayReport: A list of play reports that match the given criteria.
 //   - int: The total number of play reports available for the given criteria.
 //   - error: Any error encountered while retrieving the play reports.
-func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int) (plays []PlayReport, totalItems int, err error) {
+//
+// GetPlays retrieves play reports with optional filters, ordering, and custom parameters.
+// It accepts a variadic number of GetPlaysOption to configure the query.
+func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts ...GetPlaysOption) ([]PlayReport, int, error) {
+	// Initialize the filter with default values
+	filters := &PlayReportFilter{
+		TrackIDs:       []string{},
+		TrackInviteIDs: []string{},
+		LandingPageIDs: []string{},
+		Tags:           []string{},
+		UserIDs:        []string{},
+		PlayType:       PlayTypeAll, // Default PlayType
+	}
+
+	// Apply each option to modify the filter
+	for _, opt := range opts {
+		opt(filters)
+	}
+
+	// Convert Go types to GraphQL types
+	trackIds := make([]graphql.String, len(filters.TrackIDs))
+	for i, id := range filters.TrackIDs {
+		trackIds[i] = graphql.String(id)
+	}
+
+	trackInviteIds := make([]graphql.String, len(filters.TrackInviteIDs))
+	for i, id := range filters.TrackInviteIDs {
+		trackInviteIds[i] = graphql.String(id)
+	}
+
+	landingPageIds := make([]graphql.String, len(filters.LandingPageIDs))
+	for i, id := range filters.LandingPageIDs {
+		landingPageIds[i] = graphql.String(id)
+	}
+
+	tags := make([]graphql.String, len(filters.Tags))
+	for i, tag := range filters.Tags {
+		tags[i] = graphql.String(tag)
+	}
+
+	userIds := make([]graphql.String, len(filters.UserIDs))
+	for i, id := range filters.UserIDs {
+		userIds[i] = graphql.String(id)
+	}
+
+	// Prepare the variables map for the GraphQL query
 	variables := map[string]interface{}{
-		"teamSlug": graphql.String(c.TeamSlug),
-		"from":     from,
-		"to":       to,
-		"take":     graphql.Int(take),
-		"skip":     graphql.Int(skip),
+		"teamSlug":       graphql.String(c.TeamSlug),
+		"from":           from,
+		"to":             to,
+		"trackIds":       trackIds,
+		"trackInviteIds": trackInviteIds,
+		"landingPageIds": landingPageIds,
+		"tags":           tags,
+		"userIds":        userIds,
+		"take":           graphql.Int(take),
+		"skip":           graphql.Int(skip),
+		"playType":       filters.PlayType,
 	}
 
 	var q playQuery
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
-		return plays, 0, err
+		return nil, 0, fmt.Errorf("GraphQL query failed: %w", err)
 	}
 
-	return q.PlayReports.Items, q.TotalItems, nil
+	return q.PlayReports.Items, q.PlayReports.TotalItems, nil
 }
