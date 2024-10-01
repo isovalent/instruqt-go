@@ -34,7 +34,7 @@ const (
 // playQuery represents the GraphQL query structure for retrieving play reports
 // with specific filters like team slug, date range, and pagination.
 type playQuery struct {
-	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, trackIds: $trackIds, trackInviteIds: $trackInviteIds, landingPageIds: $landingPageIds, tags: $tags,  userIds: $userIds, pagination: {skip: $skip, take: $take}, playType: $playType})"`
+	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, trackIds: $trackIds, trackInviteIds: $trackInviteIds, landingPageIds: $landingPageIds, tags: $tags,  userIds: $userIds, pagination: {skip: $skip, take: $take}, playType: $playType, ordering: {orderBy: $orderBy, direction: $orderDirection}})"`
 }
 
 // PlayReportFilter defines the optional filters for fetching play reports.
@@ -45,6 +45,29 @@ type PlayReportFilter struct {
 	Tags           []string
 	UserIDs        []string
 	PlayType       PlayType
+	Ordering       *Ordering
+}
+
+// OrderBy represents the fields by which plays can be ordered.
+type OrderBy string
+
+const (
+	OrderByCompletionPercent OrderBy = "completion_percent"
+	OrderByTimeSpent         OrderBy = "time_spent"
+)
+
+// Direction represents the sorting direction.
+type Direction string
+
+const (
+	DirectionAsc  Direction = "Asc"
+	DirectionDesc Direction = "Desc"
+)
+
+// Ordering represents the sorting parameters for plays.
+type Ordering struct {
+	OrderBy   OrderBy   // Must be "completion_percent" or "time_spent"
+	Direction Direction // "Asc" or "Desc"
 }
 
 // PlayReports represents a collection of play reports retrieved from Instruqt.
@@ -125,6 +148,16 @@ func WithPlayType(pt PlayType) GetPlaysOption {
 	}
 }
 
+// WithOrdering sets the ordering for GetPlays.
+func WithOrdering(orderBy OrderBy, direction Direction) GetPlaysOption {
+	return func(opts *PlayReportFilter) {
+		opts.Ordering = &Ordering{
+			OrderBy:   orderBy,
+			Direction: direction,
+		}
+	}
+}
+
 // GetPlays retrieves a list of play reports from Instruqt for the specified team,
 // within a given date range, and using pagination parameters.
 //
@@ -151,6 +184,10 @@ func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts
 		Tags:           []string{},
 		UserIDs:        []string{},
 		PlayType:       PlayTypeAll, // Default PlayType
+		Ordering: &Ordering{
+			OrderBy:   OrderByCompletionPercent,
+			Direction: DirectionDesc,
+		},
 	}
 
 	// Apply each option to modify the filter
@@ -197,6 +234,8 @@ func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts
 		"take":           graphql.Int(take),
 		"skip":           graphql.Int(skip),
 		"playType":       filters.PlayType,
+		"orderBy":        graphql.String(filters.Ordering.OrderBy),
+		"orderDirection": filters.Ordering.Direction,
 	}
 
 	var q playQuery
