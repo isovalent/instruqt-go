@@ -37,6 +37,12 @@ type playQuery struct {
 	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, trackIds: $trackIds, trackInviteIds: $trackInviteIds, landingPageIds: $landingPageIds, tags: $tags,  userIds: $userIds, pagination: {skip: $skip, take: $take}, playType: $playType, ordering: {orderBy: $orderBy, direction: $orderDirection}})"`
 }
 
+// Play is the domain model of a user's journey through a track.
+type Play struct {
+	Id        string
+	StartedAt time.Time
+}
+
 // PlayReportFilter defines the optional filters for fetching play reports.
 type PlayReportFilter struct {
 	TrackIDs       []string
