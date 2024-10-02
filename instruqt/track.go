@@ -100,14 +100,6 @@ type SandboxTrack struct {
 	}
 }
 
-// Review represents a review for an Instruqt track.
-type Review struct {
-	Score      int       `json:"score"`      // The score given in the review.
-	Content    string    `json:"content"`    // The content of the review.
-	Created_At time.Time `json:"created_at"` // The timestamp when the review was created.
-	Updated_At time.Time `json:"updated_at"` // The timestamp when the review was last updated.
-}
-
 // GetTrackById retrieves a track from Instruqt using its unique track ID.
 //
 // Parameters:
