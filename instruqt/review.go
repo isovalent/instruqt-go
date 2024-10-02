@@ -23,8 +23,10 @@ import (
 
 // Review represents a review for an Instruqt track.
 type Review struct {
+	Id         string    `json:"-"`          // The review ID.
 	Score      int       `json:"score"`      // The score given in the review.
 	Content    string    `json:"content"`    // The content of the review.
+	Play       Play      `json:"-"`          // The play associated to the review.
 	Created_At time.Time `json:"created_at"` // The timestamp when the review was created.
 	Updated_At time.Time `json:"updated_at"` // The timestamp when the review was last updated.
 }
