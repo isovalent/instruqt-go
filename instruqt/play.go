@@ -43,39 +43,6 @@ type Play struct {
 	StartedAt time.Time
 }
 
-// PlayReportFilter defines the optional filters for fetching play reports.
-type PlayReportFilter struct {
-	TrackIDs       []string
-	TrackInviteIDs []string
-	LandingPageIDs []string
-	Tags           []string
-	UserIDs        []string
-	PlayType       PlayType
-	Ordering       *Ordering
-}
-
-// OrderBy represents the fields by which plays can be ordered.
-type OrderBy string
-
-const (
-	OrderByCompletionPercent OrderBy = "completion_percent"
-	OrderByTimeSpent         OrderBy = "time_spent"
-)
-
-// Direction represents the sorting direction.
-type Direction string
-
-const (
-	DirectionAsc  Direction = "Asc"
-	DirectionDesc Direction = "Desc"
-)
-
-// Ordering represents the sorting parameters for plays.
-type Ordering struct {
-	OrderBy   OrderBy   // Must be "completion_percent" or "time_spent"
-	Direction Direction // "Asc" or "Desc"
-}
-
 // PlayReports represents a collection of play reports retrieved from Instruqt.
 type PlayReports struct {
 	Items      []PlayReport // A list of play reports.
@@ -116,54 +83,6 @@ type PlayReport struct {
 	}
 }
 
-// GetPlaysOption defines a function type that modifies PlayReportFilter
-type GetPlaysOption func(*PlayReportFilter)
-
-// WithTrackIDs sets the TrackIDs filter
-func WithTrackIDs(ids ...string) GetPlaysOption {
-	return func(f *PlayReportFilter) {
-		f.TrackIDs = ids
-	}
-}
-
-// WithTrackInviteIDs sets the TrackInviteIDs filter
-func WithTrackInviteIDs(ids ...string) GetPlaysOption {
-	return func(f *PlayReportFilter) {
-		f.TrackInviteIDs = ids
-	}
-}
-
-// WithTags sets the Tags filter
-func WithTags(tags ...string) GetPlaysOption {
-	return func(f *PlayReportFilter) {
-		f.Tags = tags
-	}
-}
-
-// WithUserIDs sets the UserIDs filter
-func WithUserIDs(ids ...string) GetPlaysOption {
-	return func(f *PlayReportFilter) {
-		f.UserIDs = ids
-	}
-}
-
-// WithPlayType sets the PlayType filter
-func WithPlayType(pt PlayType) GetPlaysOption {
-	return func(f *PlayReportFilter) {
-		f.PlayType = pt
-	}
-}
-
-// WithOrdering sets the ordering for GetPlays.
-func WithOrdering(orderBy OrderBy, direction Direction) GetPlaysOption {
-	return func(opts *PlayReportFilter) {
-		opts.Ordering = &Ordering{
-			OrderBy:   orderBy,
-			Direction: direction,
-		}
-	}
-}
-
 // GetPlays retrieves a list of play reports from Instruqt for the specified team,
 // within a given date range, and using pagination parameters.
 //
@@ -172,25 +91,22 @@ func WithOrdering(orderBy OrderBy, direction Direction) GetPlaysOption {
 //   - to: The end date of the date range filter.
 //   - take: The number of play reports to retrieve in one call.
 //   - skip: The number of play reports to skip before starting to retrieve.
-//   - opts: A variadic number of GetPlaysOption to configure the query.
+//   - opts: A variadic number of Option to configure the query.
 //
 // Returns:
 //   - []PlayReport: A list of play reports that match the given criteria.
 //   - int: The total number of play reports available for the given criteria.
 //   - error: Any error encountered while retrieving the play reports.
-//
-// GetPlays retrieves play reports with optional filters, ordering, and custom parameters.
-// It accepts a variadic number of GetPlaysOption to configure the query.
-func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts ...GetPlaysOption) ([]PlayReport, int, error) {
+func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts ...Option) ([]PlayReport, int, error) {
 	// Initialize the filter with default values
-	filters := &PlayReportFilter{
-		TrackIDs:       []string{},
-		TrackInviteIDs: []string{},
-		LandingPageIDs: []string{},
-		Tags:           []string{},
-		UserIDs:        []string{},
-		PlayType:       PlayTypeAll, // Default PlayType
-		Ordering: &Ordering{
+	filters := &options{
+		trackIDs:       []string{},
+		trackInviteIDs: []string{},
+		landingPageIDs: []string{},
+		tags:           []string{},
+		userIDs:        []string{},
+		playType:       PlayTypeAll, // Default PlayType
+		ordering: &Ordering{
 			OrderBy:   OrderByCompletionPercent,
 			Direction: DirectionDesc,
 		},
@@ -202,28 +118,28 @@ func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts
 	}
 
 	// Convert Go types to GraphQL types
-	trackIds := make([]graphql.String, len(filters.TrackIDs))
-	for i, id := range filters.TrackIDs {
+	trackIds := make([]graphql.String, len(filters.trackIDs))
+	for i, id := range filters.trackIDs {
 		trackIds[i] = graphql.String(id)
 	}
 
-	trackInviteIds := make([]graphql.String, len(filters.TrackInviteIDs))
-	for i, id := range filters.TrackInviteIDs {
+	trackInviteIds := make([]graphql.String, len(filters.trackInviteIDs))
+	for i, id := range filters.trackInviteIDs {
 		trackInviteIds[i] = graphql.String(id)
 	}
 
-	landingPageIds := make([]graphql.String, len(filters.LandingPageIDs))
-	for i, id := range filters.LandingPageIDs {
+	landingPageIds := make([]graphql.String, len(filters.landingPageIDs))
+	for i, id := range filters.landingPageIDs {
 		landingPageIds[i] = graphql.String(id)
 	}
 
-	tags := make([]graphql.String, len(filters.Tags))
-	for i, tag := range filters.Tags {
+	tags := make([]graphql.String, len(filters.tags))
+	for i, tag := range filters.tags {
 		tags[i] = graphql.String(tag)
 	}
 
-	userIds := make([]graphql.String, len(filters.UserIDs))
-	for i, id := range filters.UserIDs {
+	userIds := make([]graphql.String, len(filters.userIDs))
+	for i, id := range filters.userIDs {
 		userIds[i] = graphql.String(id)
 	}
 
@@ -239,9 +155,9 @@ func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts
 		"userIds":        userIds,
 		"take":           graphql.Int(take),
 		"skip":           graphql.Int(skip),
-		"playType":       filters.PlayType,
-		"orderBy":        graphql.String(filters.Ordering.OrderBy),
-		"orderDirection": filters.Ordering.Direction,
+		"playType":       filters.playType,
+		"orderBy":        graphql.String(filters.ordering.OrderBy),
+		"orderDirection": filters.ordering.Direction,
 	}
 
 	var q playQuery
