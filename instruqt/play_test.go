@@ -54,7 +54,7 @@ func TestGetPlays_WithFilters(t *testing.T) {
 	}).Return(nil).Once()
 
 	// Define filters using Functional Options
-	options := []GetPlaysOption{
+	options := []Option{
 		WithTrackIDs("track-1"),
 		WithPlayType(PlayTypeDeveloper),
 	}
@@ -107,7 +107,7 @@ func TestGetPlays_WithPartialFilters(t *testing.T) {
 	}).Return(nil).Once()
 
 	// Define partial filters using Functional Options
-	options := []GetPlaysOption{
+	options := []Option{
 		WithTrackIDs("track-2"),
 	}
 

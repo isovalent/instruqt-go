@@ -37,24 +37,6 @@ type Review struct {
 	Play *Play
 }
 
-// GetReviewOption defines a functional option for configuring GetReview.
-// It allows modifying the behavior of GetReview, such as including additional fields.
-type GetReviewOption func(*reviewOptions)
-
-// reviewOptions holds configuration options for GetReview.
-// Currently, it supports whether to include the 'play' field in the query.
-type reviewOptions struct {
-	includePlay bool // Determines if the 'play' field should be included in the query.
-}
-
-// WithPlay is a functional option that configures GetReview to include the 'play' field in the query.
-// Usage: GetReview("reviewID", WithPlay())
-func WithPlay() GetReviewOption {
-	return func(opts *reviewOptions) {
-		opts.includePlay = true
-	}
-}
-
 // GetReview retrieves a single review by its unique identifier.
 // It accepts optional functional options to include additional fields like 'play'.
 //
@@ -65,9 +47,9 @@ func WithPlay() GetReviewOption {
 // Returns:
 // - *Review: A pointer to the retrieved Review. Includes Play if specified.
 // - error: An error object if the query fails or the review is not found.
-func (c *Client) GetReview(id string, opts ...GetReviewOption) (*Review, error) {
+func (c *Client) GetReview(id string, opts ...Option) (*Review, error) {
 	// Initialize default options.
-	options := &reviewOptions{}
+	options := &options{}
 	for _, opt := range opts {
 		opt(options)
 	}
