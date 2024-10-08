@@ -40,11 +40,7 @@ func TestGetUserInfo_Details(t *testing.T) {
 
 	queryResult := userInfoQuery{
 		User: User{
-			Details: struct {
-				FirstName graphql.String
-				LastName  graphql.String
-				Email     graphql.String
-			}{
+			Details: &UserDetails{
 				FirstName: graphql.String("John"),
 				LastName:  graphql.String("Doe"),
 				Email:     graphql.String("john.doe@example.com"),
@@ -80,10 +76,7 @@ func TestGetUserInfo_Profile(t *testing.T) {
 
 	queryResult := userInfoQuery{
 		User: User{
-			Profile: struct {
-				Display_Name graphql.String
-				Email        graphql.String
-			}{
+			Profile: &UserProfile{
 				Display_Name: graphql.String("Jane Smith"),
 				Email:        graphql.String("jane.smith@example.com"),
 			},
