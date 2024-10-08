@@ -18,6 +18,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/shurcooL/graphql"
 )
@@ -56,6 +57,7 @@ func NewClient(token string, teamSlug string) *Client {
 	}
 	return &Client{
 		GraphQLClient: graphql.NewClient("https://play.instruqt.com/graphql", httpClient),
+		InfoLogger:    log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime),
 		TeamSlug:      teamSlug,
 		Context:       context.Background(), // Default context
 	}
