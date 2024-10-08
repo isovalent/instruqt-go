@@ -30,15 +30,21 @@ type userInfoQuery struct {
 // User represents the data structure for an Instruqt user.
 type User struct {
 	Id      string
-	Details struct { // Detailed user information associated with a specific team.
-		FirstName graphql.String // The first name of the user.
-		LastName  graphql.String // The last name of the user.
-		Email     graphql.String // The email of the user.
-	} `graphql:"details(teamSlug: $teamSlug)"`
-	Profile struct { // Profile-level information for the user.
-		Display_Name graphql.String // The display name of the user.
-		Email        graphql.String // The email of the user.
-	}
+	Details *UserDetails `graphql:"details(teamSlug: $teamSlug)"`
+	Profile *UserProfile
+}
+
+// Detailed user information associated with a specific team.
+type UserDetails struct {
+	FirstName graphql.String // The first name of the user.
+	LastName  graphql.String // The last name of the user.
+	Email     graphql.String // The email of the user.
+}
+
+// Profile-level information for the user.
+type UserProfile struct {
+	Display_Name graphql.String // The display name of the user.
+	Email        graphql.String // The email of the user.
 }
 
 // UserInfo represents a simplified user information structure.
@@ -66,7 +72,7 @@ func (c *Client) GetUserInfo(userId string) (u UserInfo, err error) {
 		return u, fmt.Errorf("[GetUserInfo] Failed to retrieve user info: %v", err)
 	}
 
-	if q.User.Details.Email != "" {
+	if q.User.Details != nil && q.User.Details.Email != "" {
 		c.InfoLogger.Printf("[Instruqt][GetUserInfo][%s] Found user info from instruqt user details", userId)
 		u = UserInfo{
 			FirstName: string(q.User.Details.FirstName),
@@ -76,7 +82,7 @@ func (c *Client) GetUserInfo(userId string) (u UserInfo, err error) {
 		return u, nil
 	}
 
-	if q.User.Profile.Email != "" {
+	if q.User.Profile != nil && q.User.Profile.Email != "" {
 		c.InfoLogger.Printf("[Instruqt][GetUserInfo][%s] Found user info from instruqt user profile", userId)
 		nameParts := strings.Fields(string(q.User.Profile.Display_Name))
 		u = UserInfo{
