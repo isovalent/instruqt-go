@@ -91,11 +91,11 @@ type SandboxTrack struct {
 		TotalCount int
 		Nodes      []Review
 	}
-	Challenges  []Challenge // A list of challenges associated with the sandbox track.
-	Status      string      // The current status of the sandbox track.
-	Started     time.Time   // The timestamp when the sandbox track was started.
-	Completed   time.Time   // The timestamp when the sandbox track was completed.
-	Participant struct {    // Information about the participant of the sandbox track.
+	Challenges  []ChallengeNoTrack // A list of challenges associated with the sandbox track.
+	Status      string             // The current status of the sandbox track.
+	Started     time.Time          // The timestamp when the sandbox track was started.
+	Completed   time.Time          // The timestamp when the sandbox track was completed.
+	Participant struct {           // Information about the participant of the sandbox track.
 		Id string
 	}
 }
@@ -117,11 +117,11 @@ type SandboxTrackNoReviews struct {
 	TrackTags []struct { // A list of tags associated with the sandbox track.
 		Value string
 	}
-	Challenges  []Challenge // A list of challenges associated with the sandbox track.
-	Status      string      // The current status of the sandbox track.
-	Started     time.Time   // The timestamp when the sandbox track was started.
-	Completed   time.Time   // The timestamp when the sandbox track was completed.
-	Participant struct {    // Information about the participant of the sandbox track.
+	Challenges  []ChallengeNoTrack // A list of challenges associated with the sandbox track.
+	Status      string             // The current status of the sandbox track.
+	Started     time.Time          // The timestamp when the sandbox track was started.
+	Completed   time.Time          // The timestamp when the sandbox track was completed.
+	Participant struct {           // Information about the participant of the sandbox track.
 		Id string
 	}
 }
@@ -216,7 +216,7 @@ func (c *Client) GetTrackBySlug(trackSlug string) (t Track, err error) {
 // Returns:
 //   - Challenge: The first unlocked challenge found.
 //   - error: Any error encountered while retrieving the challenge.
-func (c *Client) GetTrackUnlockedChallenge(userId string, trackId string) (challenge Challenge, err error) {
+func (c *Client) GetTrackUnlockedChallenge(userId string, trackId string) (challenge ChallengeNoTrack, err error) {
 	track, err := c.GetUserTrackById(userId, trackId)
 	if err != nil {
 		return challenge, fmt.Errorf("[instruqt.GetTrackUnlockedChallenge] failed to get user track: %v", err)
