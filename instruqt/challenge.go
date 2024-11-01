@@ -42,6 +42,15 @@ type Challenge struct {
 	} `json:"-"`
 }
 
+// ChallengeNoTrack represents the data structure for an Instruqt challenge.
+type ChallengeNoTrack struct {
+	Id     string `json:"id"`     // The unique identifier for the challenge.
+	Slug   string `json:"slug"`   // The slug for the challenge, which is a human-readable identifier.
+	Title  string `json:"title"`  // The title of the challenge.
+	Index  int    `json:"index"`  // The index of the challenge in the track.
+	Status string `json:"status"` // The status of the challenge (e.g., "unlocked", "completed").
+}
+
 // GetChallenge retrieves a challenge from Instruqt using its unique challenge ID.
 //
 // Parameters:
