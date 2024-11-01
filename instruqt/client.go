@@ -18,9 +18,12 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"os"
 
 	"github.com/shurcooL/graphql"
+
+	loghttp "github.com/motemen/go-loghttp"
 )
 
 // GraphQLClient is an interface that defines the methods for interacting with
@@ -36,6 +39,7 @@ type GraphQLClient interface {
 type Client struct {
 	GraphQLClient GraphQLClient   // The GraphQL client used to execute queries and mutations.
 	InfoLogger    *log.Logger     // Logger for informational messages.
+	DebugLogger   *log.Logger     // Logger for debug messages.
 	TeamSlug      string          // The slug identifier for the team within Instruqt.
 	Context       context.Context // Default context for API requests
 }
@@ -50,17 +54,31 @@ type Client struct {
 // Returns:
 //   - A pointer to the newly created Client instance.
 func NewClient(token string, teamSlug string) *Client {
+	client := &Client{
+		InfoLogger:  log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime),
+		DebugLogger: log.New(os.Stdout, "DEBUG:", log.Ldate|log.Ltime),
+		TeamSlug:    teamSlug,
+		Context:     context.Background(), // Default context
+	}
+
 	httpClient := &http.Client{}
 	httpClient.Transport = &BearerTokenRoundTripper{
-		Transport: http.DefaultTransport,
-		Token:     token,
+		Transport: &loghttp.Transport{
+			Transport: httpClient.Transport,
+			LogRequest: func(req *http.Request) {
+				b, _ := httputil.DumpRequestOut(req, true)
+				client.DebugLogger.Printf("out body: %s", string(b))
+			},
+			LogResponse: func(resp *http.Response) {
+				b, _ := httputil.DumpResponse(resp, true)
+				client.DebugLogger.Printf("in body: %s", string(b))
+			},
+		},
+		Token: token,
 	}
-	return &Client{
-		GraphQLClient: graphql.NewClient("https://play.instruqt.com/graphql", httpClient),
-		InfoLogger:    log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime),
-		TeamSlug:      teamSlug,
-		Context:       context.Background(), // Default context
-	}
+
+	client.GraphQLClient = graphql.NewClient("https://play.instruqt.com/graphql", httpClient)
+	return client
 }
 
 // WithContext creates a copy of the Client with a new context.
