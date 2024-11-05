@@ -2,26 +2,28 @@ package instruqt
 
 import (
 	"encoding/json"
-	"github.com/svix/svix-webhooks/go"
 	"io"
 	"net/http"
 	"time"
+
+	svix "github.com/svix/svix-webhooks/go"
 )
 
 // WebhookEvent represents the structure of an incoming webhook event from Instruqt
 // This includes details about the type of event, participant, and other metadata
 // related to challenges, reviews, and custom parameters.
 type WebhookEvent struct {
-	Type          string    `json:"type"`           // Type of the event (e.g., challenge.completed)
-	TrackId       string    `json:"track_id"`       // ID of the track related to the event
-	TrackSlug     string    `json:"track_slug"`     // Slug identifier for the track
-	ParticipantId string    `json:"participant_id"` // ID of the participant
-	UserId        string    `json:"user_id"`        // ID of the user who triggered the event
-	InviteId      string    `json:"invite_id"`      // ID of the invite associated with the event
-	ClaimId       string    `json:"claim_id"`       // Claim ID associated with the event
-	Timestamp     time.Time `json:"timestamp"`      // Timestamp when the event occurred
-	Reason        string    `json:"reason"`         // Reason for the event, if applicable
-	Duration      int       `json:"duration"`       // Duration of the activity, if applicable
+	Type             string            `json:"type"`              // Type of the event (e.g., challenge.completed)
+	TrackId          string            `json:"track_id"`          // ID of the track related to the event
+	TrackSlug        string            `json:"track_slug"`        // Slug identifier for the track
+	ParticipantId    string            `json:"participant_id"`    // ID of the participant
+	UserId           string            `json:"user_id"`           // ID of the user who triggered the event
+	InviteId         string            `json:"invite_id"`         // ID of the invite associated with the event
+	ClaimId          string            `json:"claim_id"`          // Claim ID associated with the event
+	Timestamp        time.Time         `json:"timestamp"`         // Timestamp when the event occurred
+	Reason           string            `json:"reason"`            // Reason for the event, if applicable
+	Duration         int               `json:"duration"`          // Duration of the activity, if applicable
+	CustomParameters map[string]string `json:"custom_parameters"` // Custom parameters for the sandbox
 
 	// Challenges
 	ChallengeId     string `json:"challenge_id"`     // ID of the challenge
