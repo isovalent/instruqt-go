@@ -51,8 +51,8 @@ type PlayReports struct {
 
 // PlayReport represents the data structure for a single play report on Instruqt.
 type PlayReport struct {
-	Id    string       // The unique identifier for the play report.
-	Track SandboxTrack // The track played.
+	Id    string                // The unique identifier for the play report.
+	Track SandboxTrackNoReviews // The track played.
 
 	TrackInvite TrackInvite // The optional Track invite associated to the play.
 
@@ -142,6 +142,8 @@ func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts
 	for i, id := range filters.userIDs {
 		userIds[i] = graphql.String(id)
 	}
+
+	c.InfoLogger.Printf("teamslug: %s", c.TeamSlug)
 
 	// Prepare the variables map for the GraphQL query
 	variables := map[string]interface{}{

@@ -91,11 +91,37 @@ type SandboxTrack struct {
 		TotalCount int
 		Nodes      []Review
 	}
-	Challenges  []Challenge // A list of challenges associated with the sandbox track.
-	Status      string      // The current status of the sandbox track.
-	Started     time.Time   // The timestamp when the sandbox track was started.
-	Completed   time.Time   // The timestamp when the sandbox track was completed.
-	Participant struct {    // Information about the participant of the sandbox track.
+	Challenges  []ChallengeNoTrack // A list of challenges associated with the sandbox track.
+	Status      string             // The current status of the sandbox track.
+	Started     time.Time          // The timestamp when the sandbox track was started.
+	Completed   time.Time          // The timestamp when the sandbox track was completed.
+	Participant struct {           // Information about the participant of the sandbox track.
+		Id string
+	}
+}
+
+// SandboxTrackNoReviews represents a track in a sandbox environment, including its details
+// and associated challenges, without reviews.
+type SandboxTrackNoReviews struct {
+	Id          string   // The unique identifier for the sandbox track.
+	Slug        string   // The slug identifier for the sandbox track.
+	Icon        string   // The icon associated with the sandbox track.
+	Title       string   // The title of the sandbox track.
+	Description string   // The description of the sandbox track.
+	Teaser      string   // A teaser or short description of the sandbox track.
+	Level       string   // The difficulty level of the sandbox track.
+	Embed_Token string   // The token used for embedding the sandbox track.
+	Statistics  struct { // Statistics about the sandbox track.
+		Average_review_score float32 // The average review score of the sandbox track.
+	}
+	TrackTags []struct { // A list of tags associated with the sandbox track.
+		Value string
+	}
+	Challenges  []ChallengeNoTrack // A list of challenges associated with the sandbox track.
+	Status      string             // The current status of the sandbox track.
+	Started     time.Time          // The timestamp when the sandbox track was started.
+	Completed   time.Time          // The timestamp when the sandbox track was completed.
+	Participant struct {           // Information about the participant of the sandbox track.
 		Id string
 	}
 }
@@ -190,7 +216,7 @@ func (c *Client) GetTrackBySlug(trackSlug string) (t Track, err error) {
 // Returns:
 //   - Challenge: The first unlocked challenge found.
 //   - error: Any error encountered while retrieving the challenge.
-func (c *Client) GetTrackUnlockedChallenge(userId string, trackId string) (challenge Challenge, err error) {
+func (c *Client) GetTrackUnlockedChallenge(userId string, trackId string) (challenge ChallengeNoTrack, err error) {
 	track, err := c.GetUserTrackById(userId, trackId)
 	if err != nil {
 		return challenge, fmt.Errorf("[instruqt.GetTrackUnlockedChallenge] failed to get user track: %v", err)
