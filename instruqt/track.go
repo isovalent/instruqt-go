@@ -47,15 +47,18 @@ type tracksQuery struct {
 
 // Track represents the data structure for an Instruqt track.
 type Track struct {
-	Slug        string   // The slug identifier for the track.
-	Id          string   // The unique identifier for the track.
-	Icon        string   // The icon associated with the track.
-	Title       string   // The title of the track.
-	Description string   // The description of the track.
-	Teaser      string   // A teaser or short description of the track.
-	Level       string   // The difficulty level of the track.
-	Embed_Token string   // The token used for embedding the track.
-	Statistics  struct { // Statistics about the track.
+	Slug        string    // The slug identifier for the track.
+	Id          string    // The unique identifier for the track.
+	Icon        string    // The icon associated with the track.
+	Title       string    // The title of the track.
+	Description string    // The description of the track.
+	Teaser      string    // A teaser or short description of the track.
+	Level       string    // The difficulty level of the track.
+	Embed_Token string    // The token used for embedding the track.
+	CreatedAt   time.Time // Timestamp of when track was created.
+	DeletedAt   time.Time // Timestamp of when track was deleted.
+	Last_Update time.Time // Timestamp of when track has been last updated.
+	Statistics  struct {  // Statistics about the track.
 		Average_review_score float32 // The average review score of the track.
 	}
 	TrackTags    []TrackTag // A list of tags associated with the track.
@@ -73,15 +76,18 @@ type TrackTag struct {
 // SandboxTrack represents a track in a sandbox environment, including its details
 // and associated challenges.
 type SandboxTrack struct {
-	Id          string   // The unique identifier for the sandbox track.
-	Slug        string   // The slug identifier for the sandbox track.
-	Icon        string   // The icon associated with the sandbox track.
-	Title       string   // The title of the sandbox track.
-	Description string   // The description of the sandbox track.
-	Teaser      string   // A teaser or short description of the sandbox track.
-	Level       string   // The difficulty level of the sandbox track.
-	Embed_Token string   // The token used for embedding the sandbox track.
-	Statistics  struct { // Statistics about the sandbox track.
+	Id          string    // The unique identifier for the sandbox track.
+	Slug        string    // The slug identifier for the sandbox track.
+	Icon        string    // The icon associated with the sandbox track.
+	Title       string    // The title of the sandbox track.
+	Description string    // The description of the sandbox track.
+	Teaser      string    // A teaser or short description of the sandbox track.
+	Level       string    // The difficulty level of the sandbox track.
+	Embed_Token string    // The token used for embedding the sandbox track.
+	CreatedAt   time.Time // Timestamp of when track was created.
+	DeletedAt   time.Time // Timestamp of when track was deleted.
+	Last_Update time.Time // Timestamp of when track has been last updated.
+	Statistics  struct {  // Statistics about the sandbox track.
 		Average_review_score float32 // The average review score of the sandbox track.
 	}
 	TrackTags []struct { // A list of tags associated with the sandbox track.
