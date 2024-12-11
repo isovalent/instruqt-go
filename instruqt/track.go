@@ -95,8 +95,8 @@ type SandboxTrack struct {
 	TrackReviews struct {   // A collection of reviews for the sandbox track.
 		TotalCount int
 		Nodes      []Review
-	}
-	Challenges  []Challenge // A list of challenges associated with the sandbox track.
+	} `graphql:"-"` /* Not queried */
+	Challenges  []Challenge `graphql:"-"` // A list of challenges associated with the sandbox track, not queried.
 	Status      string      // The current status of the sandbox track.
 	Started     time.Time   // The timestamp when the sandbox track was started.
 	Completed   time.Time   // The timestamp when the sandbox track was completed.
@@ -158,15 +158,22 @@ func (c *Client) GetTrackById(trackId string, opts ...Option) (t Track, err erro
 // using the user's ID and the track's ID.
 //
 // Parameters:
-//   - userId: The unique identifier of the user.
-//   - trackId: The unique identifier of the track.
+// - userId: The unique identifier of the user.
+// - trackId: The unique identifier of the track.
+// - opts (...Option): Variadic functional options to modify the query behavior.
 //
 // Returns:
 //   - SandboxTrack: The track details with challenges if found.
 //   - error: Any error encountered while retrieving the track.
-func (c *Client) GetUserTrackById(userId string, trackId string) (t SandboxTrack, err error) {
+func (c *Client) GetUserTrackById(userId string, trackId string, opts ...Option) (t SandboxTrack, err error) {
 	if trackId == "" {
 		return t, nil
+	}
+
+	// Initialize default options.
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
 	}
 
 	var q userTrackQueryWithChallenges
@@ -178,6 +185,23 @@ func (c *Client) GetUserTrackById(userId string, trackId string) (t SandboxTrack
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
 		return t, err
+	}
+
+	if options.includeChallenges {
+		challenges, err := c.GetChallenges(trackId)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch challenges for track: %v", err)
+		}
+		q.Track.Challenges = challenges
+	}
+
+	if options.includeReviews {
+		count, reviews, err := c.GetReviews(trackId, opts...)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch reviews for track: %v", err)
+		}
+		q.Track.TrackReviews.TotalCount = count
+		q.Track.TrackReviews.Nodes = reviews
 	}
 
 	return q.Track, nil
@@ -244,7 +268,7 @@ func (c *Client) GetTrackBySlug(trackSlug string, opts ...Option) (t Track, err 
 //   - Challenge: The first unlocked challenge found.
 //   - error: Any error encountered while retrieving the challenge.
 func (c *Client) GetTrackUnlockedChallenge(userId string, trackId string) (challenge Challenge, err error) {
-	track, err := c.GetUserTrackById(userId, trackId)
+	track, err := c.GetUserTrackById(userId, trackId, WithChallenges())
 	if err != nil {
 		return challenge, fmt.Errorf("[instruqt.GetTrackUnlockedChallenge] failed to get user track: %v", err)
 	}
