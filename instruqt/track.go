@@ -186,14 +186,21 @@ func (c *Client) GetUserTrackById(userId string, trackId string) (t SandboxTrack
 // GetTrackBySlug retrieves a track from Instruqt using its slug and team slug.
 //
 // Parameters:
-//   - trackSlug: The slug identifier of the track to retrieve.
+// - trackSlug: The slug identifier of the track to retrieve.
+// - opts (...Option): Variadic functional options to modify the query behavior.
 //
 // Returns:
 //   - Track: The track details if found.
 //   - error: Any error encountered while retrieving the track.
-func (c *Client) GetTrackBySlug(trackSlug string) (t Track, err error) {
+func (c *Client) GetTrackBySlug(trackSlug string, opts ...Option) (t Track, err error) {
 	if trackSlug == "" {
 		return t, nil
+	}
+
+	// Initialize default options.
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
 	}
 
 	var q trackQueryBySlug
@@ -204,6 +211,23 @@ func (c *Client) GetTrackBySlug(trackSlug string) (t Track, err error) {
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
 		return t, err
+	}
+
+	if options.includeChallenges {
+		challenges, err := c.GetChallenges(q.Track.Id)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch challenges for track: %v", err)
+		}
+		q.Track.Challenges = challenges
+	}
+
+	if options.includeReviews {
+		count, reviews, err := c.GetReviews(q.Track.Id, opts...)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch reviews for track: %v", err)
+		}
+		q.Track.TrackReviews.TotalCount = count
+		q.Track.TrackReviews.Nodes = reviews
 	}
 
 	return q.Track, nil
