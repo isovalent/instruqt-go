@@ -65,7 +65,8 @@ type Track struct {
 	TrackReviews struct {   // A collection of reviews for the track.
 		TotalCount int
 		Nodes      []Review
-	}
+	} `graphql:"-"` // Not queried
+	Challenges []Challenge `graphql:"-"` // A list of challenges associated with the sandbox track, not queried.
 }
 
 // TrackTag represents a tag associated with an Instruqt track.
@@ -107,14 +108,21 @@ type SandboxTrack struct {
 // GetTrackById retrieves a track from Instruqt using its unique track ID.
 //
 // Parameters:
-//   - trackId: The unique identifier of the track to retrieve.
+// - trackId: The unique identifier of the track to retrieve.
+// - opts (...Option): Variadic functional options to modify the query behavior.
 //
 // Returns:
 //   - Track: The track details if found.
 //   - error: Any error encountered while retrieving the track.
-func (c *Client) GetTrackById(trackId string) (t Track, err error) {
+func (c *Client) GetTrackById(trackId string, opts ...Option) (t Track, err error) {
 	if trackId == "" {
 		return t, nil
+	}
+
+	// Initialize default options.
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
 	}
 
 	var q trackQuery
@@ -124,6 +132,23 @@ func (c *Client) GetTrackById(trackId string) (t Track, err error) {
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
 		return t, err
+	}
+
+	if options.includeChallenges {
+		challenges, err := c.GetChallenges(trackId)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch challenges for track: %v", err)
+		}
+		q.Track.Challenges = challenges
+	}
+
+	if options.includeReviews {
+		count, reviews, err := c.GetReviews(trackId, opts...)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch reviews for track: %v", err)
+		}
+		q.Track.TrackReviews.TotalCount = count
+		q.Track.TrackReviews.Nodes = reviews
 	}
 
 	return q.Track, nil
@@ -250,4 +275,96 @@ func (c *Client) GenerateOneTimePlayToken(trackId string) (token string, err err
 	}
 
 	return m.GenerateOneTimePlayToken, nil
+}
+
+// GetReviews retrieves all reviews for a Track
+// It accepts optional functional options to include additional fields like 'play'.
+//
+// Parameters:
+// - trackId (string): The unique identifier of the track.
+// - opts (...Option): Variadic functional options to modify the query behavior.
+//
+// Returns:
+// - []Review: A list retrieved Reviews. Includes Play if specified.
+// - error: An error object if the query fails or the review is not found.
+func (c *Client) GetReviews(trackId string, opts ...Option) (count int, reviews []Review, err error) {
+	// Initialize default options.
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	// Prepare GraphQL variables.
+	variables := map[string]interface{}{
+		"trackId": graphql.ID(trackId),
+	}
+
+	if options.includePlay {
+		// Define the extended query struct with 'play'.
+		var q struct {
+			TrackReviews struct {
+				TotalCount int
+				Nodes      []Review
+			} `graphql:"trackReviews(trackID: $trackId)"`
+		}
+
+		// Execute the query.
+		if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+			return 0, nil, fmt.Errorf("GraphQL query with play failed: %w", err)
+		}
+
+		// Return the fetched Review, which includes Play.
+		return q.TrackReviews.TotalCount, q.TrackReviews.Nodes, nil
+	}
+
+	// Define the base query struct without 'play'.
+	var q struct {
+		TrackReviews struct {
+			TotalCount int
+			Nodes      []baseReview
+		} `graphql:"trackReviews(trackID: $trackId)"`
+	}
+
+	// Execute the query.
+	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+		return 0, nil, fmt.Errorf("GraphQL query failed: %w", err)
+	}
+
+	// Construct the Reviews without Play.
+	for _, r := range q.TrackReviews.Nodes {
+		reviews = append(reviews, Review{
+			baseReview: r,
+			Play:       nil,
+		})
+	}
+
+	return q.TrackReviews.TotalCount, reviews, nil
+}
+
+// GetChallenges retrieves all challenges for a Track using its unique track ID.
+//
+// Parameters:
+//   - trackId: The unique identifier of the track to retrieve.
+//
+// Returns:
+//   - []Challenge: The list of challenges.
+//   - error: Any error encountered while retrieving the challenge.
+func (c *Client) GetChallenges(trackId string) (ch []Challenge, err error) {
+	if trackId == "" {
+		return ch, nil
+	}
+
+	var q struct {
+		Challenges []Challenge `graphql:"challenges(trackID: $trackId, teamSlug: $teamSlug)"`
+	}
+	variables := map[string]interface{}{
+		"trackId":  graphql.String(trackId),
+		"teamSlug": graphql.String(c.TeamSlug),
+	}
+
+	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+		return ch, err
+	}
+
+	return q.Challenges, nil
 }
