@@ -284,18 +284,48 @@ func (c *Client) GetTrackUnlockedChallenge(userId string, trackId string) (chall
 }
 
 // GetTracks retrieves all tracks associated with the client's team slug.
+
+// Parameters:
+// - opts (...Option): Variadic functional options to modify the query behavior.
 //
 // Returns:
-//   - []Track: A list of tracks for the team.
-//   - error: Any error encountered while retrieving the tracks.
-func (c *Client) GetTracks() (t []Track, err error) {
+// - []Track: A list of tracks for the team.
+// - error: Any error encountered while retrieving the tracks.
+func (c *Client) GetTracks(opts ...Option) (tt []Track, err error) {
+	// Initialize default options.
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	var q tracksQuery
 	variables := map[string]interface{}{
 		"organizationSlug": graphql.String(c.TeamSlug),
 	}
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
-		return t, err
+		return tt, err
+	}
+
+	if options.includeChallenges {
+		for _, t := range q.Tracks {
+			challenges, err := c.GetChallenges(t.Id)
+			if err != nil {
+				return tt, fmt.Errorf("failed to fetch challenges for track: %v", err)
+			}
+			t.Challenges = challenges
+		}
+	}
+
+	if options.includeReviews {
+		for _, t := range q.Tracks {
+			count, reviews, err := c.GetReviews(t.Id, opts...)
+			if err != nil {
+				return tt, fmt.Errorf("failed to fetch reviews for track: %v", err)
+			}
+			t.TrackReviews.TotalCount = count
+			t.TrackReviews.Nodes = reviews
+		}
 	}
 
 	return q.Tracks, nil
