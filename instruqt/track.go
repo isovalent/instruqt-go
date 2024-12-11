@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shurcooL/graphql"
+	graphql "github.com/hasura/go-graphql-client"
 )
 
 // trackQuery represents the GraphQL query structure for retrieving a single
@@ -27,9 +27,9 @@ type trackQuery struct {
 	Track `graphql:"track(trackID: $trackId)"`
 }
 
-// userTrackQueryWithChallenges represents the GraphQL query structure for retrieving
+// sandboxTrackQuery represents the GraphQL query structure for retrieving
 // a user's specific track along with its challenges by track ID, user ID, and organization slug.
-type userTrackQueryWithChallenges struct {
+type sandboxTrackQuery struct {
 	Track SandboxTrack `graphql:"track(trackID: $trackId, userID: $userId, organizationSlug: $organizationSlug)"`
 }
 
@@ -65,7 +65,8 @@ type Track struct {
 	TrackReviews struct {   // A collection of reviews for the track.
 		TotalCount int
 		Nodes      []Review
-	}
+	} `graphql:"-"` // Not queried
+	Challenges []Challenge `graphql:"-"` // A list of challenges associated with the sandbox track, not queried.
 }
 
 // TrackTag represents a tag associated with an Instruqt track.
@@ -90,14 +91,12 @@ type SandboxTrack struct {
 	Statistics  struct {  // Statistics about the sandbox track.
 		Average_review_score float32 // The average review score of the sandbox track.
 	}
-	TrackTags []struct { // A list of tags associated with the sandbox track.
-		Value string
-	}
-	TrackReviews struct { // A collection of reviews for the sandbox track.
+	TrackTags    []TrackTag // A list of tags associated with the track.
+	TrackReviews struct {   // A collection of reviews for the sandbox track.
 		TotalCount int
 		Nodes      []Review
-	}
-	Challenges  []Challenge // A list of challenges associated with the sandbox track.
+	} `graphql:"-"` /* Not queried */
+	Challenges  []Challenge `graphql:"-"` // A list of challenges associated with the sandbox track, not queried.
 	Status      string      // The current status of the sandbox track.
 	Started     time.Time   // The timestamp when the sandbox track was started.
 	Completed   time.Time   // The timestamp when the sandbox track was completed.
@@ -109,14 +108,21 @@ type SandboxTrack struct {
 // GetTrackById retrieves a track from Instruqt using its unique track ID.
 //
 // Parameters:
-//   - trackId: The unique identifier of the track to retrieve.
+// - trackId: The unique identifier of the track to retrieve.
+// - opts (...Option): Variadic functional options to modify the query behavior.
 //
 // Returns:
 //   - Track: The track details if found.
 //   - error: Any error encountered while retrieving the track.
-func (c *Client) GetTrackById(trackId string) (t Track, err error) {
+func (c *Client) GetTrackById(trackId string, opts ...Option) (t Track, err error) {
 	if trackId == "" {
 		return t, nil
+	}
+
+	// Initialize default options.
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
 	}
 
 	var q trackQuery
@@ -128,6 +134,23 @@ func (c *Client) GetTrackById(trackId string) (t Track, err error) {
 		return t, err
 	}
 
+	if options.includeChallenges {
+		challenges, err := c.GetChallenges(trackId)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch challenges for track: %v", err)
+		}
+		q.Track.Challenges = challenges
+	}
+
+	if options.includeReviews {
+		count, reviews, err := c.GetReviews(trackId, opts...)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch reviews for track: %v", err)
+		}
+		q.Track.TrackReviews.TotalCount = count
+		q.Track.TrackReviews.Nodes = reviews
+	}
+
 	return q.Track, nil
 }
 
@@ -135,18 +158,25 @@ func (c *Client) GetTrackById(trackId string) (t Track, err error) {
 // using the user's ID and the track's ID.
 //
 // Parameters:
-//   - userId: The unique identifier of the user.
-//   - trackId: The unique identifier of the track.
+// - userId: The unique identifier of the user.
+// - trackId: The unique identifier of the track.
+// - opts (...Option): Variadic functional options to modify the query behavior.
 //
 // Returns:
 //   - SandboxTrack: The track details with challenges if found.
 //   - error: Any error encountered while retrieving the track.
-func (c *Client) GetUserTrackById(userId string, trackId string) (t SandboxTrack, err error) {
+func (c *Client) GetUserTrackById(userId string, trackId string, opts ...Option) (t SandboxTrack, err error) {
 	if trackId == "" {
 		return t, nil
 	}
 
-	var q userTrackQueryWithChallenges
+	// Initialize default options.
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	var q sandboxTrackQuery
 	variables := map[string]interface{}{
 		"trackId":          graphql.String(trackId),
 		"userId":           graphql.String(userId),
@@ -157,20 +187,44 @@ func (c *Client) GetUserTrackById(userId string, trackId string) (t SandboxTrack
 		return t, err
 	}
 
+	if options.includeChallenges {
+		challenges, err := c.GetChallenges(trackId)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch challenges for track: %v", err)
+		}
+		q.Track.Challenges = challenges
+	}
+
+	if options.includeReviews {
+		count, reviews, err := c.GetReviews(trackId, opts...)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch reviews for track: %v", err)
+		}
+		q.Track.TrackReviews.TotalCount = count
+		q.Track.TrackReviews.Nodes = reviews
+	}
+
 	return q.Track, nil
 }
 
 // GetTrackBySlug retrieves a track from Instruqt using its slug and team slug.
 //
 // Parameters:
-//   - trackSlug: The slug identifier of the track to retrieve.
+// - trackSlug: The slug identifier of the track to retrieve.
+// - opts (...Option): Variadic functional options to modify the query behavior.
 //
 // Returns:
 //   - Track: The track details if found.
 //   - error: Any error encountered while retrieving the track.
-func (c *Client) GetTrackBySlug(trackSlug string) (t Track, err error) {
+func (c *Client) GetTrackBySlug(trackSlug string, opts ...Option) (t Track, err error) {
 	if trackSlug == "" {
 		return t, nil
+	}
+
+	// Initialize default options.
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
 	}
 
 	var q trackQueryBySlug
@@ -181,6 +235,23 @@ func (c *Client) GetTrackBySlug(trackSlug string) (t Track, err error) {
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
 		return t, err
+	}
+
+	if options.includeChallenges {
+		challenges, err := c.GetChallenges(q.Track.Id)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch challenges for track: %v", err)
+		}
+		q.Track.Challenges = challenges
+	}
+
+	if options.includeReviews {
+		count, reviews, err := c.GetReviews(q.Track.Id, opts...)
+		if err != nil {
+			return t, fmt.Errorf("failed to fetch reviews for track: %v", err)
+		}
+		q.Track.TrackReviews.TotalCount = count
+		q.Track.TrackReviews.Nodes = reviews
 	}
 
 	return q.Track, nil
@@ -197,7 +268,7 @@ func (c *Client) GetTrackBySlug(trackSlug string) (t Track, err error) {
 //   - Challenge: The first unlocked challenge found.
 //   - error: Any error encountered while retrieving the challenge.
 func (c *Client) GetTrackUnlockedChallenge(userId string, trackId string) (challenge Challenge, err error) {
-	track, err := c.GetUserTrackById(userId, trackId)
+	track, err := c.GetUserTrackById(userId, trackId, WithChallenges())
 	if err != nil {
 		return challenge, fmt.Errorf("[instruqt.GetTrackUnlockedChallenge] failed to get user track: %v", err)
 	}
@@ -213,18 +284,48 @@ func (c *Client) GetTrackUnlockedChallenge(userId string, trackId string) (chall
 }
 
 // GetTracks retrieves all tracks associated with the client's team slug.
+
+// Parameters:
+// - opts (...Option): Variadic functional options to modify the query behavior.
 //
 // Returns:
-//   - []Track: A list of tracks for the team.
-//   - error: Any error encountered while retrieving the tracks.
-func (c *Client) GetTracks() (t []Track, err error) {
+// - []Track: A list of tracks for the team.
+// - error: Any error encountered while retrieving the tracks.
+func (c *Client) GetTracks(opts ...Option) (tt []Track, err error) {
+	// Initialize default options.
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	var q tracksQuery
 	variables := map[string]interface{}{
 		"organizationSlug": graphql.String(c.TeamSlug),
 	}
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
-		return t, err
+		return tt, err
+	}
+
+	if options.includeChallenges {
+		for _, t := range q.Tracks {
+			challenges, err := c.GetChallenges(t.Id)
+			if err != nil {
+				return tt, fmt.Errorf("failed to fetch challenges for track: %v", err)
+			}
+			t.Challenges = challenges
+		}
+	}
+
+	if options.includeReviews {
+		for _, t := range q.Tracks {
+			count, reviews, err := c.GetReviews(t.Id, opts...)
+			if err != nil {
+				return tt, fmt.Errorf("failed to fetch reviews for track: %v", err)
+			}
+			t.TrackReviews.TotalCount = count
+			t.TrackReviews.Nodes = reviews
+		}
 	}
 
 	return q.Tracks, nil
@@ -252,4 +353,98 @@ func (c *Client) GenerateOneTimePlayToken(trackId string) (token string, err err
 	}
 
 	return m.GenerateOneTimePlayToken, nil
+}
+
+// GetReviews retrieves all reviews for a Track
+// It accepts optional functional options to include additional fields like 'play'.
+//
+// Parameters:
+// - trackId (string): The unique identifier of the track.
+// - opts (...Option): Variadic functional options to modify the query behavior.
+//
+// Returns:
+// - []Review: A list retrieved Reviews. Includes Play if specified.
+// - error: An error object if the query fails or the review is not found.
+func (c *Client) GetReviews(trackId string, opts ...Option) (count int, reviews []Review, err error) {
+	// Initialize default options.
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	// Prepare GraphQL variables.
+	variables := map[string]interface{}{
+		"trackId": graphql.String(trackId),
+	}
+
+	if options.includePlay {
+		// Define the extended query struct with 'play'.
+		var q struct {
+			TrackReviews struct {
+				TotalCount int
+				Nodes      []Review
+			} `graphql:"trackReviews(trackID: $trackId)"`
+		}
+
+		// Execute the query.
+		if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+			return 0, nil, fmt.Errorf("GraphQL query with play failed: %w", err)
+		}
+
+		// Return the fetched Review, which includes Play.
+		return q.TrackReviews.TotalCount, q.TrackReviews.Nodes, nil
+	}
+
+	// Define the base query struct without 'play'.
+	var q struct {
+		TrackReviews struct {
+			TotalCount int
+			Nodes      []baseReview
+		} `graphql:"trackReviews(trackID: $trackId)"`
+	}
+
+	// Execute the query.
+	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+		return 0, nil, fmt.Errorf("GraphQL query failed: %w", err)
+	}
+
+	// Construct the Reviews without Play.
+	for _, r := range q.TrackReviews.Nodes {
+		reviews = append(reviews, Review{
+			baseReview: r,
+			Play:       nil,
+		})
+	}
+
+	return q.TrackReviews.TotalCount, reviews, nil
+}
+
+type challengesQuery struct {
+	Challenges []Challenge `graphql:"challenges(trackID: $trackId, teamSlug: $teamSlug)"`
+}
+
+// GetChallenges retrieves all challenges for a Track using its unique track ID.
+//
+// Parameters:
+//   - trackId: The unique identifier of the track to retrieve.
+//
+// Returns:
+//   - []Challenge: The list of challenges.
+//   - error: Any error encountered while retrieving the challenge.
+func (c *Client) GetChallenges(trackId string) (ch []Challenge, err error) {
+	if trackId == "" {
+		return ch, nil
+	}
+
+	var q challengesQuery
+	variables := map[string]interface{}{
+		"trackId":  graphql.String(trackId),
+		"teamSlug": graphql.String(c.TeamSlug),
+	}
+
+	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+		return ch, err
+	}
+
+	return q.Challenges, nil
 }

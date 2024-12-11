@@ -17,7 +17,7 @@ package instruqt
 import (
 	"time"
 
-	"github.com/shurcooL/graphql"
+	graphql "github.com/hasura/go-graphql-client"
 )
 
 // inviteQuery represents the GraphQL query structure for retrieving a single

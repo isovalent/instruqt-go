@@ -19,7 +19,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/shurcooL/graphql"
+	graphql "github.com/hasura/go-graphql-client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shurcooL/graphql"
+	graphql "github.com/hasura/go-graphql-client"
 )
 
 // baseReview represents the fundamental fields of a review.

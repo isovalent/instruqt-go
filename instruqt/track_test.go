@@ -66,12 +66,12 @@ func TestGetUserTrackById(t *testing.T) {
 		Description: "Test Description",
 	}
 
-	queryResult := userTrackQueryWithChallenges{
+	queryResult := sandboxTrackQuery{
 		Track: expectedTrack,
 	}
 
-	mockClient.On("Query", mock.Anything, &userTrackQueryWithChallenges{}, mock.Anything).Run(func(args mock.Arguments) {
-		q := args.Get(1).(*userTrackQueryWithChallenges)
+	mockClient.On("Query", mock.Anything, &sandboxTrackQuery{}, mock.Anything).Run(func(args mock.Arguments) {
+		q := args.Get(1).(*sandboxTrackQuery)
 		*q = queryResult
 	}).Return(nil)
 
@@ -127,20 +127,27 @@ func TestGetTrackUnlockedChallenge(t *testing.T) {
 		Status: "unlocked",
 	}
 
+	challenges := []Challenge{
+		expectedChallenge,
+		{Id: "challenge-456", Slug: "locked-challenge", Title: "Locked Challenge", Status: "locked"},
+	}
+
 	track := SandboxTrack{
 		Id:          "track-123",
 		Slug:        "test-slug",
 		Title:       "Test Track",
 		Description: "Test Description",
-		Challenges: []Challenge{
-			expectedChallenge,
-			{Id: "challenge-456", Slug: "locked-challenge", Title: "Locked Challenge", Status: "locked"},
-		},
+		Challenges:  challenges,
 	}
 
-	mockClient.On("Query", mock.Anything, &userTrackQueryWithChallenges{}, mock.Anything).Run(func(args mock.Arguments) {
-		q := args.Get(1).(*userTrackQueryWithChallenges)
+	mockClient.On("Query", mock.Anything, &sandboxTrackQuery{}, mock.Anything).Run(func(args mock.Arguments) {
+		q := args.Get(1).(*sandboxTrackQuery)
 		q.Track = track
+	}).Return(nil)
+
+	mockClient.On("Query", mock.Anything, &challengesQuery{}, mock.Anything).Run(func(args mock.Arguments) {
+		q := args.Get(1).(*challengesQuery)
+		q.Challenges = challenges
 	}).Return(nil)
 
 	challenge, err := client.GetTrackUnlockedChallenge(userID, trackID)

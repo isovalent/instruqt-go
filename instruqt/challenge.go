@@ -15,7 +15,7 @@
 package instruqt
 
 import (
-	"github.com/shurcooL/graphql"
+	graphql "github.com/hasura/go-graphql-client"
 )
 
 // challengeQuery represents the GraphQL query structure for retrieving a single challenge
@@ -35,6 +35,7 @@ type Challenge struct {
 	Id     string `json:"id"`     // The unique identifier for the challenge.
 	Slug   string `json:"slug"`   // The slug for the challenge, which is a human-readable identifier.
 	Title  string `json:"title"`  // The title of the challenge.
+	Teaser string `json:"teaser"` // The teaser of the challenge.
 	Index  int    `json:"index"`  // The index of the challenge in the track.
 	Status string `json:"status"` // The status of the challenge (e.g., "unlocked", "completed").
 	Track  struct {
