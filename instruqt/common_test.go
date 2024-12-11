@@ -17,6 +17,7 @@ package instruqt
 import (
 	"context"
 
+	graphql "github.com/hasura/go-graphql-client"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -25,12 +26,12 @@ type MockGraphQLClient struct {
 	mock.Mock
 }
 
-func (m *MockGraphQLClient) Query(ctx context.Context, q interface{}, variables map[string]interface{}) error {
+func (m *MockGraphQLClient) Query(ctx context.Context, q any, variables map[string]any, opts ...graphql.Option) error {
 	args := m.Called(ctx, q, variables)
 	return args.Error(0)
 }
 
-func (m *MockGraphQLClient) Mutate(ctx context.Context, mutation interface{}, variables map[string]interface{}) error {
+func (m *MockGraphQLClient) Mutate(ctx context.Context, mutation any, variables map[string]any, opts ...graphql.Option) error {
 	args := m.Called(ctx, mutation, variables)
 	return args.Error(0)
 }
