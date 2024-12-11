@@ -26,6 +26,10 @@ type options struct {
 	// Options for GetReview
 	includePlay bool
 
+	// Options for GetTrack*
+	includeChallenges bool
+	includeReviews    bool
+
 	// Options for GetPlays
 	trackIDs       []string
 	trackInviteIDs []string
@@ -41,6 +45,22 @@ type options struct {
 func WithPlay() Option {
 	return func(opts *options) {
 		opts.includePlay = true
+	}
+}
+
+// WithChallenges is a functional option to include challenges.
+// Example usage: GetTrackById("tracKID", WithChallenges())
+func WithChallenges() Option {
+	return func(opts *options) {
+		opts.includeChallenges = true
+	}
+}
+
+// WithReviews is a functional option to include reviews.
+// Example usage: GetTrackById("tracKID", WithReviews())
+func WithReviews() Option {
+	return func(opts *options) {
+		opts.includeReviews = true
 	}
 }
 
