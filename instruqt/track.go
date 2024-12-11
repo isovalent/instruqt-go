@@ -27,9 +27,9 @@ type trackQuery struct {
 	Track `graphql:"track(trackID: $trackId)"`
 }
 
-// userTrackQueryWithChallenges represents the GraphQL query structure for retrieving
+// sandboxTrackQuery represents the GraphQL query structure for retrieving
 // a user's specific track along with its challenges by track ID, user ID, and organization slug.
-type userTrackQueryWithChallenges struct {
+type sandboxTrackQuery struct {
 	Track SandboxTrack `graphql:"track(trackID: $trackId, userID: $userId, organizationSlug: $organizationSlug)"`
 }
 
@@ -176,7 +176,7 @@ func (c *Client) GetUserTrackById(userId string, trackId string, opts ...Option)
 		opt(options)
 	}
 
-	var q userTrackQueryWithChallenges
+	var q sandboxTrackQuery
 	variables := map[string]interface{}{
 		"trackId":          graphql.String(trackId),
 		"userId":           graphql.String(userId),
@@ -389,6 +389,10 @@ func (c *Client) GetReviews(trackId string, opts ...Option) (count int, reviews 
 	return q.TrackReviews.TotalCount, reviews, nil
 }
 
+type challengesQuery struct {
+	Challenges []Challenge `graphql:"challenges(trackID: $trackId, teamSlug: $teamSlug)"`
+}
+
 // GetChallenges retrieves all challenges for a Track using its unique track ID.
 //
 // Parameters:
@@ -402,9 +406,7 @@ func (c *Client) GetChallenges(trackId string) (ch []Challenge, err error) {
 		return ch, nil
 	}
 
-	var q struct {
-		Challenges []Challenge `graphql:"challenges(trackID: $trackId, teamSlug: $teamSlug)"`
-	}
+	var q challengesQuery
 	variables := map[string]interface{}{
 		"trackId":  graphql.String(trackId),
 		"teamSlug": graphql.String(c.TeamSlug),
