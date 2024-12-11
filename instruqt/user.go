@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/shurcooL/graphql"
+	graphql "github.com/hasura/go-graphql-client"
 )
 
 // userInfoQuery represents the GraphQL query structure for retrieving user information

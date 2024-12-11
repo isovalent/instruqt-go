@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shurcooL/graphql"
+	graphql "github.com/hasura/go-graphql-client"
 )
 
 // playType defines a custom type for play modes on Instruqt.

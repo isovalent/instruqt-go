@@ -15,7 +15,7 @@
 package instruqt
 
 import (
-	"github.com/shurcooL/graphql"
+	graphql "github.com/hasura/go-graphql-client"
 )
 
 // challengeQuery represents the GraphQL query structure for retrieving a single challenge

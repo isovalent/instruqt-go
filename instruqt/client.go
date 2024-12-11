@@ -21,7 +21,7 @@ import (
 	"net/http/httputil"
 	"os"
 
-	"github.com/shurcooL/graphql"
+	graphql "github.com/hasura/go-graphql-client"
 
 	loghttp "github.com/motemen/go-loghttp"
 )
@@ -29,8 +29,8 @@ import (
 // GraphQLClient is an interface that defines the methods for interacting with
 // a GraphQL API, including querying and mutating data.
 type GraphQLClient interface {
-	Query(ctx context.Context, q interface{}, variables map[string]interface{}) error
-	Mutate(ctx context.Context, m interface{}, variables map[string]interface{}) error
+	Query(context.Context, any, map[string]any, ...graphql.Option) error
+	Mutate(context.Context, any, map[string]any, ...graphql.Option) error
 }
 
 // Client represents the Instruqt API client, which provides methods to

@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/shurcooL/graphql"
+	graphql "github.com/hasura/go-graphql-client"
 )
 
 // teamQuery represents the GraphQL query structure for retrieving the TPG public key
