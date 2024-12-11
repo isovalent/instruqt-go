@@ -90,10 +90,8 @@ type SandboxTrack struct {
 	Statistics  struct {  // Statistics about the sandbox track.
 		Average_review_score float32 // The average review score of the sandbox track.
 	}
-	TrackTags []struct { // A list of tags associated with the sandbox track.
-		Value string
-	}
-	TrackReviews struct { // A collection of reviews for the sandbox track.
+	TrackTags    []TrackTag // A list of tags associated with the track.
+	TrackReviews struct {   // A collection of reviews for the sandbox track.
 		TotalCount int
 		Nodes      []Review
 	}
