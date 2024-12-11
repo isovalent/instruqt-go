@@ -374,7 +374,7 @@ func (c *Client) GetReviews(trackId string, opts ...Option) (count int, reviews 
 
 	// Prepare GraphQL variables.
 	variables := map[string]interface{}{
-		"trackId": graphql.ID(trackId),
+		"trackId": graphql.String(trackId),
 	}
 
 	if options.includePlay {
