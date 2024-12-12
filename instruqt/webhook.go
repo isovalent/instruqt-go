@@ -17,6 +17,8 @@ type WebhookEvent struct {
 	TrackId          string            `json:"track_id"`          // ID of the track related to the event
 	TrackSlug        string            `json:"track_slug"`        // Slug identifier for the track
 	ParticipantId    string            `json:"participant_id"`    // ID of the participant
+	IsDeveloperPlay  bool              `json:"is_developer_play"` // Whether it is a developer or normal play
+	Pooled           bool              `json:"pooled"`            // Whether the track was pooled
 	UserId           string            `json:"user_id"`           // ID of the user who triggered the event
 	InviteId         string            `json:"invite_id"`         // ID of the invite associated with the event
 	ClaimId          string            `json:"claim_id"`          // Claim ID associated with the event
