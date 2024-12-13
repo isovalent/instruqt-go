@@ -49,6 +49,17 @@ type HotStartPoolConfigTrackEdge struct {
 	Node      SandboxConfig
 }
 
+// HotStartPoolTrackEdge
+type HotStartPoolTrackEdge struct {
+	Claimed   int
+	Available int
+	Created   int
+	Failed    int
+	Creating  int
+	Total     int
+	Node      Track
+}
+
 // HotStartPool represents a hot start pool in Instruqt.
 type HotStartPool struct {
 	Id          string                        // ID of the hot start pool.
@@ -63,4 +74,5 @@ type HotStartPool struct {
 	Status      HotStartStatus                // Status of the hot start pool.
 	Region      string                        // Region of a hotstart pool.
 	Configs     []HotStartPoolConfigTrackEdge // Configs status for the hotstart pool.
+	Tracks      []HotStartPoolTrackEdge       // Tracks status for the hotstart pool.
 }
