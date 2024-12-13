@@ -83,6 +83,11 @@ type PlayReport struct {
 	}
 }
 
+// playItemQuery represents the GraphQL query structure for retrieving a single play report
+type playItemQuery struct {
+	PlayReportItem PlayReport `graphql:"playReportItem(playID: $playID, input: {teamSlug: $teamSlug, playType: $playType})"`
+}
+
 // GetPlays retrieves a list of play reports from Instruqt for the specified team,
 // within a given date range, and using pagination parameters.
 //
@@ -166,4 +171,38 @@ func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts
 	}
 
 	return q.PlayReports.Items, q.PlayReports.TotalItems, nil
+}
+
+func (c *Client) GetPlayReportItem(playId string, opts ...Option) (*PlayReport, error) {
+	// Initialize the filter with default values
+	filters := &options{
+		playType: PlayTypeAll, // Default PlayType
+	}
+
+	// Apply each option to modify the filter
+	for _, opt := range opts {
+		opt(filters)
+	}
+
+	// Prepare the variables map for the GraphQL query
+	variables := map[string]interface{}{
+		"playID":   graphql.String(playId),
+		"teamSlug": graphql.String(c.TeamSlug),
+		"playType": filters.playType,
+	}
+
+	var q playItemQuery
+	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+		return nil, fmt.Errorf("GraphQL query failed: %w", err)
+	}
+
+	if filters.includeChallenges {
+		challenges, err := c.GetChallenges(q.PlayReportItem.Track.Id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch challenges for track: %v", err)
+		}
+		q.PlayReportItem.Track.Challenges = challenges
+	}
+
+	return &q.PlayReportItem, nil
 }
