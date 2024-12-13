@@ -23,3 +23,21 @@ type SandboxConfig struct {
 	Version int
 	Deleted *time.Time
 }
+
+type SandboxConfigVersionStatus string
+
+const (
+	SandboxConfigVersionStatusDraft     SandboxConfigVersionStatus = "draft"
+	SandboxConfigVersionStatusPublished SandboxConfigVersionStatus = "published"
+	SandboxConfigVersionStatusArchived  SandboxConfigVersionStatus = "archived"
+	SandboxConfigVersionStatusIsolated  SandboxConfigVersionStatus = "isolated"
+)
+
+type SandboxConfigVersion struct {
+	Id           string
+	Config       SandboxConfig
+	Version      int
+	Description  string
+	Status       SandboxConfigVersionStatus
+	Published_At *time.Time
+}
