@@ -103,7 +103,7 @@ type SandboxTrack struct {
 	Participant struct {    // Information about the participant of the sandbox track.
 		Id string
 	}
-	SandboxConfig *SandboxConfig // The SandboxConfig associated the track.
+	SandboxConfig *SandboxConfigVersion // The SandboxConfig associated the track.
 }
 
 // GetTrackById retrieves a track from Instruqt using its unique track ID.
