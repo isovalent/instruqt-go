@@ -196,5 +196,13 @@ func (c *Client) GetPlayReportItem(playId string, opts ...Option) (*PlayReport, 
 		return nil, fmt.Errorf("GraphQL query failed: %w", err)
 	}
 
+	if filters.includeChallenges {
+		challenges, err := c.GetChallenges(q.PlayReportItem.Track.Id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch challenges for track: %v", err)
+		}
+		q.PlayReportItem.Track.Challenges = challenges
+	}
+
 	return &q.PlayReportItem, nil
 }
