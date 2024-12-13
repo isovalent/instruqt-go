@@ -48,12 +48,13 @@ type sandboxesQuery struct {
 // Sandbox represents a sandbox environment within Instruqt, including details
 // about its state, associated track, and invite.
 type Sandbox struct {
-	Id               string       // The id of the sandbox.
-	Last_Activity_At time.Time    // The timestamp of the last activity in the sandbox.
-	State            string       // The current state of the sandbox (e.g., "running", "stopped").
-	Track            SandboxTrack // The track associated with the sandbox.
-	Invite           TrackInvite  // The invite details associated with the sandbox.
-	User             User         // The user running the sandbox.
+	Id               string        // The id of the sandbox.
+	Last_Activity_At time.Time     // The timestamp of the last activity in the sandbox.
+	State            string        // The current state of the sandbox (e.g., "running", "stopped").
+	Track            SandboxTrack  // The track associated with the sandbox.
+	Invite           TrackInvite   // The invite details associated with the sandbox.
+	User             User          // The user running the sandbox.
+	Hot_Start_Pool   *HotStartPool // The hot start pool associated with the sandbox.
 }
 
 // GetSandboxVariable retrieves a specific variable from a sandbox environment
