@@ -36,9 +36,14 @@ type User struct {
 
 // Detailed user information associated with a specific team.
 type UserDetails struct {
-	FirstName graphql.String // The first name of the user.
-	LastName  graphql.String // The last name of the user.
-	Email     graphql.String // The email of the user.
+	FirstName   graphql.String  // The first name of the user.
+	LastName    graphql.String  // The last name of the user.
+	Email       graphql.String  // The email of the user.
+	CompanyName graphql.String  // The company name of the user.
+	JobTitle    graphql.String  // The job title of the user.
+	JobLevel    graphql.String  // The job level of the user.
+	CountryCode graphql.String  // The country code of the user.
+	Consent     graphql.Boolean // The consent status of the user.
 }
 
 // Profile-level information for the user.
