@@ -57,6 +57,7 @@ type UserInfo struct {
 	FirstName string // The first name of the user.
 	LastName  string // The last name of the user.
 	Email     string // The email of the user.
+	Consent   bool   // The consent status of the user.
 }
 
 // GetUserInfo retrieves the user information from Instruqt using the user's unique ID.
@@ -77,24 +78,30 @@ func (c *Client) GetUserInfo(userId string) (u UserInfo, err error) {
 		return u, fmt.Errorf("[GetUserInfo] Failed to retrieve user info: %v", err)
 	}
 
-	if q.User.Details != nil && q.User.Details.Email != "" {
-		c.InfoLogger.Printf("[Instruqt][GetUserInfo][%s] Found user info from instruqt user details", userId)
-		u = UserInfo{
-			FirstName: string(q.User.Details.FirstName),
-			LastName:  string(q.User.Details.LastName),
-			Email:     string(q.User.Details.Email),
+	u = UserInfo{}
+
+	if q.User.Details != nil {
+		u.Consent = bool(q.User.Details.Consent)
+
+		if q.User.Details.Email != "" {
+			c.InfoLogger.Printf("[Instruqt][GetUserInfo][%s] Found user info from instruqt user details", userId)
+			u.FirstName = string(q.User.Details.FirstName)
+			u.LastName = string(q.User.Details.LastName)
+			u.Email = string(q.User.Details.Email)
+			return u, nil
 		}
-		return u, nil
 	}
 
 	if q.User.Profile != nil && q.User.Profile.Email != "" {
 		c.InfoLogger.Printf("[Instruqt][GetUserInfo][%s] Found user info from instruqt user profile", userId)
 		nameParts := strings.Fields(string(q.User.Profile.Display_Name))
-		u = UserInfo{
-			FirstName: nameParts[0],
-			LastName:  strings.Join(nameParts[1:], " "),
-			Email:     string(q.User.Profile.Email),
+		u.FirstName = nameParts[0]
+		if len(nameParts) > 1 {
+			u.LastName = strings.Join(nameParts[1:], " ")
+		} else {
+			u.LastName = ""
 		}
+		u.Email = string(q.User.Profile.Email)
 
 		return u, nil
 	}
