@@ -15,6 +15,8 @@
 package instruqt
 
 import (
+	"time"
+
 	graphql "github.com/hasura/go-graphql-client"
 )
 
@@ -41,6 +43,10 @@ type Challenge struct {
 	Track  struct {
 		Id string // The identifier for the track associated with the challenge.
 	} `json:"-"`
+	Attempts []struct {
+		Message   string    `json:"message"`   // The message returned by the attempts.
+		Timestamp time.Time `json:"timestamp"` // The timestamp of the attempt.
+	} `json:"attempts"` // The attempts made on the challenge by the user.
 }
 
 // GetChallenge retrieves a challenge from Instruqt using its unique challenge ID.
