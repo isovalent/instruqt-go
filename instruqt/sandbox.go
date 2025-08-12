@@ -93,7 +93,17 @@ func (c *Client) GetSandboxVariable(playID string, key string) (v string, err er
 // Returns:
 //   - Sandbox: The sandbox.
 //   - error: Any error encountered while retrieving the sandbox.
-func (c *Client) GetSandbox(id string) (s Sandbox, err error) {
+func (c *Client) GetSandbox(id string, opts ...Option) (s Sandbox, err error) {
+	// Initialize the filter with default values
+	filters := &options{
+		playType: PlayTypeAll, // Default PlayType
+	}
+
+	// Apply each option to modify the filter
+	for _, opt := range opts {
+		opt(filters)
+	}
+
 	var q sandboxQuery
 	variables := map[string]interface{}{
 		"id":       graphql.ID(id),
@@ -102,6 +112,23 @@ func (c *Client) GetSandbox(id string) (s Sandbox, err error) {
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
 		return s, err
+	}
+
+	if filters.includeChallenges {
+		challenges, err := c.GetChallenges(q.Sandbox.Track.Id)
+		if err != nil {
+			return s, err
+		}
+
+		// Enrich challenges with status
+		for i := range challenges {
+			if ch, err := c.GetUserChallenge(q.Sandbox.User.Id, challenges[i].Id); err == nil {
+				challenges[i] = ch
+			} else {
+				return s, err
+			}
+		}
+		q.Sandbox.Track.Challenges = challenges
 	}
 
 	return q.Sandbox, nil
