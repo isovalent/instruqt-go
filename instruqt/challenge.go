@@ -47,6 +47,7 @@ type Challenge struct {
 		Message   string    `json:"message"`   // The message returned by the attempts.
 		Timestamp time.Time `json:"timestamp"` // The timestamp of the attempt.
 	} `json:"attempts"` // The attempts made on the challenge by the user.
+	Assignment string `json:"assignment"` // The assignment details for the challenge.
 }
 
 // GetChallenge retrieves a challenge from Instruqt using its unique challenge ID.
