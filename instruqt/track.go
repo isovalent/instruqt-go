@@ -194,7 +194,7 @@ func (c *Client) GetUserTrackById(userId string, trackId string, opts ...Option)
 			return t, fmt.Errorf("failed to fetch challenges for track: %v", err)
 		}
 		for i, ch := range challenges {
-			if cch, err := c.GetUserChallenge(q.Track.Participant.Id, ch.Id); err == nil {
+			if cch, err := c.GetUserChallenge(userId, ch.Id); err == nil {
 				challenges[i] = cch
 			} else {
 				return t, err
