@@ -18,7 +18,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"os"
 
 	graphql "github.com/hasura/go-graphql-client"
@@ -65,14 +64,16 @@ func NewClient(token string, teamSlug string) *Client {
 	httpClient.Transport = &BearerTokenRoundTripper{
 		Transport: &loghttp.Transport{
 			Transport: httpClient.Transport,
-			LogRequest: func(req *http.Request) {
-				b, _ := httputil.DumpRequestOut(req, true)
-				client.DebugLogger.Printf("out body: %s", string(b))
-			},
-			LogResponse: func(resp *http.Response) {
-				b, _ := httputil.DumpResponse(resp, true)
-				client.DebugLogger.Printf("in body: %s", string(b))
-			},
+			/*
+				LogRequest: func(req *http.Request) {
+					b, _ := httputil.DumpRequestOut(req, true)
+					client.DebugLogger.Printf("out body: %s", string(b))
+				},
+				LogResponse: func(resp *http.Response) {
+					b, _ := httputil.DumpResponse(resp, true)
+					client.DebugLogger.Printf("in body: %s", string(b))
+				},
+			*/
 		},
 		Token: token,
 	}

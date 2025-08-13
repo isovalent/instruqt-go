@@ -282,6 +282,7 @@ func (c *Client) GetTrackUnlockedChallenge(userId string, trackId string) (chall
 	}
 
 	for _, chllg := range track.Challenges {
+		fmt.Printf("Challenge: %s, Status: %s\n", chllg.Title, chllg.Status)
 		switch chllg.Status {
 		case "unlocked", "creating", "created", "started":
 			return chllg, nil
