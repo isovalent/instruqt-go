@@ -139,7 +139,17 @@ func (c *Client) GetSandbox(id string, opts ...Option) (s Sandbox, err error) {
 // Returns:
 //   - []Sandbox: A list of sandboxes for the team.
 //   - error: Any error encountered while retrieving the sandboxes.
-func (c *Client) GetSandboxes() (s []Sandbox, err error) {
+func (c *Client) GetSandboxes(opts ...Option) (s []Sandbox, err error) {
+	// Initialize the filter with default values
+	filters := &options{
+		playType: PlayTypeAll, // Default PlayType
+	}
+
+	// Apply each option to modify the filter
+	for _, opt := range opts {
+		opt(filters)
+	}
+
 	var q sandboxesQuery
 	variables := map[string]interface{}{
 		"teamSlug": graphql.String(c.TeamSlug),
@@ -147,6 +157,25 @@ func (c *Client) GetSandboxes() (s []Sandbox, err error) {
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
 		return s, err
+	}
+
+	if filters.includeChallenges {
+		for i := range q.Sandboxes.Nodes {
+			challenges, err := c.GetChallenges(q.Sandboxes.Nodes[i].Track.Id)
+			if err != nil {
+				return s, err
+			}
+
+			// Enrich challenges with status
+			for j := range challenges {
+				if ch, err := c.GetUserChallenge(q.Sandboxes.Nodes[i].User.Id, challenges[j].Id); err == nil {
+					challenges[j] = ch
+				} else {
+					return s, err
+				}
+			}
+			q.Sandboxes.Nodes[i].Track.Challenges = challenges
+		}
 	}
 
 	return q.Sandboxes.Nodes, nil
