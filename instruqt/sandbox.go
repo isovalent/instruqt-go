@@ -37,12 +37,27 @@ type sandboxQuery struct {
 	Sandbox Sandbox `graphql:"sandbox(ID: $id)"`
 }
 
-// sandboxesQuery represents the GraphQL query structure for retrieving all sandboxes
+// SandboxState defines the possible states of a sandbox.
+type SandboxState string
+
+// Constants representing different sandbox states.
+const (
+	SandboxStateCreating SandboxState = "creating"
+	SandboxStateCreated  SandboxState = "created"
+	SandboxStateFailed   SandboxState = "failed"
+	SandboxStatePooled   SandboxState = "pooled"
+	SandboxStateStopped  SandboxState = "stopped"
+	SandboxStateActive   SandboxState = "active"
+	SandboxStateClaimed  SandboxState = "claimed"
+	SandboxStateCleaning SandboxState = "cleaning"
+	SandboxStateCleaned  SandboxState = "cleaned"
+)
+
 // associated with a specific team.
 type sandboxesQuery struct {
 	Sandboxes struct {
 		Nodes []Sandbox // A list of sandboxes retrieved by the query.
-	} `graphql:"sandboxes(teamSlug: $teamSlug)"`
+	} `graphql:"sandboxes(teamSlug: $teamSlug, filter: {track_ids: $track_ids, invite_ids: $invite_ids, pool_ids: $pool_ids, user_name_or_id: $user_name_or_id, state: $state})"`
 }
 
 // Sandbox represents a sandbox environment within Instruqt, including details
@@ -114,23 +129,6 @@ func (c *Client) GetSandbox(id string, opts ...Option) (s Sandbox, err error) {
 		return s, err
 	}
 
-	if filters.includeChallenges {
-		challenges, err := c.GetChallenges(q.Sandbox.Track.Id)
-		if err != nil {
-			return s, err
-		}
-
-		// Enrich challenges with status
-		for i := range challenges {
-			if ch, err := c.GetUserChallenge(q.Sandbox.User.Id, challenges[i].Id); err == nil {
-				challenges[i] = ch
-			} else {
-				return s, err
-			}
-		}
-		q.Sandbox.Track.Challenges = challenges
-	}
-
 	return q.Sandbox, nil
 }
 
@@ -150,32 +148,39 @@ func (c *Client) GetSandboxes(opts ...Option) (s []Sandbox, err error) {
 		opt(filters)
 	}
 
+	// Convert Go types to GraphQL types
+	trackIds := make([]graphql.String, len(filters.trackIDs))
+	for i, id := range filters.trackIDs {
+		trackIds[i] = graphql.String(id)
+	}
+
+	trackInviteIds := make([]graphql.String, len(filters.trackInviteIDs))
+	for i, id := range filters.trackInviteIDs {
+		trackInviteIds[i] = graphql.String(id)
+	}
+
+	poolIds := make([]graphql.String, len(filters.poolIDs))
+	for i, id := range filters.poolIDs {
+		poolIds[i] = graphql.String(id)
+	}
+
+	var userNameOrId string
+	if len(filters.userIDs) > 0 {
+		userNameOrId = filters.userIDs[0]
+	}
+
 	var q sandboxesQuery
 	variables := map[string]interface{}{
-		"teamSlug": graphql.String(c.TeamSlug),
+		"teamSlug":        graphql.String(c.TeamSlug),
+		"track_ids":       trackIds,
+		"invite_ids":      trackInviteIds,
+		"pool_ids":        poolIds,
+		"user_name_or_id": graphql.String(userNameOrId),
+		"state":           filters.states,
 	}
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
 		return s, err
-	}
-
-	if filters.includeChallenges {
-		for i := range q.Sandboxes.Nodes {
-			challenges, err := c.GetChallenges(q.Sandboxes.Nodes[i].Track.Id)
-			if err != nil {
-				return s, err
-			}
-
-			// Enrich challenges with status
-			for j := range challenges {
-				if ch, err := c.GetUserChallenge(q.Sandboxes.Nodes[i].User.Id, challenges[j].Id); err == nil {
-					challenges[j] = ch
-				} else {
-					return s, err
-				}
-			}
-			q.Sandboxes.Nodes[i].Track.Challenges = challenges
-		}
 	}
 
 	return q.Sandboxes.Nodes, nil

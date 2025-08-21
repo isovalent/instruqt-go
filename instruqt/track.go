@@ -96,7 +96,7 @@ type SandboxTrack struct {
 		TotalCount int
 		Nodes      []Review
 	} `graphql:"-"` /* Not queried */
-	Challenges  []Challenge `graphql:"-"` // A list of challenges associated with the sandbox track, not queried.
+	Challenges  []Challenge // A list of challenges associated with the sandbox track, not queried.
 	Status      string      // The current status of the sandbox track.
 	Started     time.Time   // The timestamp when the sandbox track was started.
 	Completed   time.Time   // The timestamp when the sandbox track was completed.

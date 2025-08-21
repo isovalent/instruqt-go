@@ -30,6 +30,9 @@ type options struct {
 	includeChallenges bool
 	includeReviews    bool
 
+	// Options for GetChallenge*
+	includeAssignment bool
+
 	// Options for GetPlays
 	trackIDs       []string
 	trackInviteIDs []string
@@ -38,6 +41,10 @@ type options struct {
 	userIDs        []string
 	playType       PlayType
 	ordering       *Ordering
+
+	// Options for GetSandboxes
+	states  []SandboxState
+	poolIDs []string
 }
 
 // WithPlay is a functional option that configures methods to include the 'play' field in the query.
@@ -101,6 +108,28 @@ func WithUserIDs(ids ...string) Option {
 func WithPlayType(pt PlayType) Option {
 	return func(opts *options) {
 		opts.playType = pt
+	}
+}
+
+// WithStates sets the State filter for methods that support it.
+// Usage: GetSandboxes(WithState("active"))
+func WithStates(states ...SandboxState) Option {
+	return func(opts *options) {
+		opts.states = states
+	}
+}
+
+// WithPoolIDs sets the PoolIDs filter for methods that support it.
+// Usage: GetSandboxes(WithPoolIDs("pool1", "pool2"))
+func WithPoolIDs(ids ...string) Option {
+	return func(opts *options) {
+		opts.poolIDs = ids
+	}
+}
+
+func WithAssignment() Option {
+	return func(opts *options) {
+		opts.includeAssignment = true
 	}
 }
 
