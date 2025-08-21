@@ -37,7 +37,22 @@ type sandboxQuery struct {
 	Sandbox Sandbox `graphql:"sandbox(ID: $id)"`
 }
 
-// sandboxesQuery represents the GraphQL query structure for retrieving all sandboxes
+// SandboxState defines the possible states of a sandbox.
+type SandboxState string
+
+// Constants representing different sandbox states.
+const (
+	SandboxStateCreating SandboxState = "creating"
+	SandboxStateCreated  SandboxState = "created"
+	SandboxStateFailed   SandboxState = "failed"
+	SandboxStatePooled   SandboxState = "pooled"
+	SandboxStateStopped  SandboxState = "stopped"
+	SandboxStateActive   SandboxState = "active"
+	SandboxStateClaimed  SandboxState = "claimed"
+	SandboxStateCleaning SandboxState = "cleaning"
+	SandboxStateCleaned  SandboxState = "cleaned"
+)
+
 // associated with a specific team.
 type sandboxesQuery struct {
 	Sandboxes struct {
@@ -47,13 +62,13 @@ type sandboxesQuery struct {
 
 // sandboxFilterInput represents the filter options for querying sandboxes.
 type SandboxFilterInput struct {
-	Track_ids       []string  // A list of track IDs to filter sandboxes.
-	Invite_ids      []string  // A list of invite IDs to filter sandboxes.
-	Pool_ids        []string  // A list of hot start pool IDs to filter sandboxes.
-	User_name_or_id string    // The user name or id
-	State           string    // The state of the sandbox (e.g., "active", "inactive").
-	From            time.Time // The start time for the sandbox filter.
-	To              time.Time // The end time for the sandbox filter.
+	Track_ids       []string     // A list of track IDs to filter sandboxes.
+	Invite_ids      []string     // A list of invite IDs to filter sandboxes.
+	Pool_ids        []string     // A list of hot start pool IDs to filter sandboxes.
+	User_name_or_id string       // The user name or id
+	State           SandboxState // The state of the sandbox (e.g., "active", "inactive").
+	From            time.Time    // The start time for the sandbox filter.
+	To              time.Time    // The end time for the sandbox filter.
 }
 
 // Sandbox represents a sandbox environment within Instruqt, including details
@@ -155,7 +170,7 @@ func (c *Client) GetSandboxes(opts ...Option) (s []Sandbox, err error) {
 		queryFilter.Pool_ids = filters.poolIDs
 	}
 	if filters.state != "" {
-		queryFilter.State = filters.state
+		queryFilter.State = SandboxState(filters.state)
 	}
 
 	var q sandboxesQuery
