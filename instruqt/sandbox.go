@@ -125,23 +125,6 @@ func (c *Client) GetSandbox(id string, opts ...Option) (s Sandbox, err error) {
 		return s, err
 	}
 
-	if filters.includeChallenges {
-		challenges, err := c.GetChallenges(q.Sandbox.Track.Id)
-		if err != nil {
-			return s, err
-		}
-
-		// Enrich challenges with status
-		for i := range challenges {
-			if ch, err := c.GetUserChallenge(q.Sandbox.User.Id, challenges[i].Id); err == nil {
-				challenges[i] = ch
-			} else {
-				return s, err
-			}
-		}
-		q.Sandbox.Track.Challenges = challenges
-	}
-
 	return q.Sandbox, nil
 }
 
@@ -183,17 +166,6 @@ func (c *Client) GetSandboxes(opts ...Option) (s []Sandbox, err error) {
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
 		return s, err
-	}
-
-	if filters.includeChallenges {
-		for i := range q.Sandboxes.Nodes {
-			sandbox := q.Sandboxes.Nodes[i]
-			t, err := c.GetUserTrackById(sandbox.User.Id, sandbox.Track.Id, WithChallenges())
-			if err != nil {
-				return s, err
-			}
-			q.Sandboxes.Nodes[i].Track = t
-		}
 	}
 
 	return q.Sandboxes.Nodes, nil
