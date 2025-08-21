@@ -57,18 +57,7 @@ const (
 type sandboxesQuery struct {
 	Sandboxes struct {
 		Nodes []Sandbox // A list of sandboxes retrieved by the query.
-	} `graphql:"sandboxes(teamSlug: $teamSlug, filter: $filter)"`
-}
-
-// sandboxFilterInput represents the filter options for querying sandboxes.
-type SandboxFilterInput struct {
-	Track_ids       []string     // A list of track IDs to filter sandboxes.
-	Invite_ids      []string     // A list of invite IDs to filter sandboxes.
-	Pool_ids        []string     // A list of hot start pool IDs to filter sandboxes.
-	User_name_or_id string       // The user name or id
-	State           SandboxState // The state of the sandbox (e.g., "active", "inactive").
-	From            time.Time    // The start time for the sandbox filter.
-	To              time.Time    // The end time for the sandbox filter.
+	} `graphql:"sandboxes(teamSlug: $teamSlug, filter: {track_ids: $track_ids, invite_ids: $invite_ids, pool_ids: $pool_ids, user_name_or_id: $user_name_or_id, state: $state})"`
 }
 
 // Sandbox represents a sandbox environment within Instruqt, including details
@@ -159,24 +148,35 @@ func (c *Client) GetSandboxes(opts ...Option) (s []Sandbox, err error) {
 		opt(filters)
 	}
 
-	var queryFilter SandboxFilterInput
-	if filters.trackIDs != nil {
-		queryFilter.Track_ids = filters.trackIDs
+	// Convert Go types to GraphQL types
+	trackIds := make([]graphql.String, len(filters.trackIDs))
+	for i, id := range filters.trackIDs {
+		trackIds[i] = graphql.String(id)
 	}
-	if filters.trackInviteIDs != nil {
-		queryFilter.Invite_ids = filters.trackInviteIDs
+
+	trackInviteIds := make([]graphql.String, len(filters.trackInviteIDs))
+	for i, id := range filters.trackInviteIDs {
+		trackInviteIds[i] = graphql.String(id)
 	}
-	if filters.poolIDs != nil {
-		queryFilter.Pool_ids = filters.poolIDs
+
+	poolIds := make([]graphql.String, len(filters.poolIDs))
+	for i, id := range filters.poolIDs {
+		poolIds[i] = graphql.String(id)
 	}
-	if filters.state != "" {
-		queryFilter.State = filters.state
+
+	var userNameOrId string
+	if len(filters.userIDs) > 0 {
+		userNameOrId = filters.userIDs[0]
 	}
 
 	var q sandboxesQuery
 	variables := map[string]interface{}{
-		"teamSlug": graphql.String(c.TeamSlug),
-		"filter":   queryFilter,
+		"teamSlug":        graphql.String(c.TeamSlug),
+		"track_ids":       trackIds,
+		"invite_ids":      trackInviteIds,
+		"pool_ids":        poolIds,
+		"user_name_or_id": graphql.String(userNameOrId),
+		"state":           filters.state,
 	}
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
