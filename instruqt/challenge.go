@@ -47,7 +47,7 @@ type Challenge struct {
 		Message   string    `json:"message"`   // The message returned by the attempts.
 		Timestamp time.Time `json:"timestamp"` // The timestamp of the attempt.
 	} `json:"attempts"` // The attempts made on the challenge by the user.
-	Assignment string `json:"assignment"` // The assignment details for the challenge.
+	Assignment string `graphql:"-" json:"assignment"` // The assignment details for the challenge.
 }
 
 // GetChallenge retrieves a challenge from Instruqt using its unique challenge ID.
@@ -58,9 +58,15 @@ type Challenge struct {
 // Returns:
 //   - Challenge: The challenge details if found.
 //   - error: Any error encountered while retrieving the challenge.
-func (c *Client) GetChallenge(id string) (ch Challenge, err error) {
+func (c *Client) GetChallenge(id string, opts ...Option) (ch Challenge, err error) {
 	if id == "" {
 		return ch, nil
+	}
+
+	// Apply each option to modify the filter
+	var filters *options
+	for _, opt := range opts {
+		opt(filters)
 	}
 
 	var q challengeQuery
@@ -72,6 +78,14 @@ func (c *Client) GetChallenge(id string) (ch Challenge, err error) {
 		return ch, err
 	}
 
+	if filters != nil && filters.includeAssignment {
+		cc, err := c.GetChallengeWithAssignment(id)
+		if err != nil {
+			return ch, err
+		}
+		q.Challenge.Assignment = cc.Assignment
+	}
+
 	return q.Challenge, nil
 }
 
@@ -81,19 +95,60 @@ func (c *Client) GetChallenge(id string) (ch Challenge, err error) {
 // Parameters:
 //   - userId: The unique identifier of the user.
 //   - id: The unique identifier of the challenge.
+//   - opts: The options used for the query.
 //
 // Returns:
 //   - Challenge: The challenge details if found.
 //   - error: Any error encountered while retrieving the challenge.
-func (c *Client) GetUserChallenge(userId string, id string) (ch Challenge, err error) {
+func (c *Client) GetUserChallenge(userId string, id string, opts ...Option) (ch Challenge, err error) {
 	if id == "" {
 		return ch, nil
+	}
+
+	// Apply each option to modify the filter
+	var filters *options
+	for _, opt := range opts {
+		opt(filters)
 	}
 
 	var q userChallengeQuery
 	variables := map[string]interface{}{
 		"challengeId": graphql.String(id),
 		"userId":      graphql.String(userId),
+	}
+
+	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+		return ch, err
+	}
+
+	if filters != nil && filters.includeAssignment {
+		cc, err := c.GetChallengeWithAssignment(id)
+		if err != nil {
+			return ch, err
+		}
+		q.Challenge.Assignment = cc.Assignment
+	}
+
+	return q.Challenge, nil
+}
+
+// ChallengeWithAssignment
+type ChallengeWithAssignment struct {
+	Id         string `graphql:"id"`         // The unique identifier for the challenge.
+	Assignment string `graphql:"assignment"` // The assignment details for the challenge.
+}
+
+// GetChallengeWithAssignment returns a ChallengeWithAssignment
+func (c *Client) GetChallengeWithAssignment(id string) (ch ChallengeWithAssignment, err error) {
+	if id == "" {
+		return ch, nil
+	}
+
+	var q struct {
+		Challenge ChallengeWithAssignment `graphql:"challenge(challengeID: $challengeId)"`
+	}
+	variables := map[string]interface{}{
+		"challengeId": graphql.String(id),
 	}
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
