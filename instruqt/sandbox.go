@@ -187,20 +187,12 @@ func (c *Client) GetSandboxes(opts ...Option) (s []Sandbox, err error) {
 
 	if filters.includeChallenges {
 		for i := range q.Sandboxes.Nodes {
-			challenges, err := c.GetChallenges(q.Sandboxes.Nodes[i].Track.Id)
+			sandbox := q.Sandboxes.Nodes[i]
+			t, err := c.GetUserTrackById(sandbox.User.Id, sandbox.Track.Id, WithChallenges())
 			if err != nil {
 				return s, err
 			}
-
-			// Enrich challenges with status
-			for j := range challenges {
-				if ch, err := c.GetUserChallenge(q.Sandboxes.Nodes[i].User.Id, challenges[j].Id); err == nil {
-					challenges[j] = ch
-				} else {
-					return s, err
-				}
-			}
-			q.Sandboxes.Nodes[i].Track.Challenges = challenges
+			q.Sandboxes.Nodes[i].Track = t
 		}
 	}
 
