@@ -30,6 +30,9 @@ type options struct {
 	includeChallenges bool
 	includeReviews    bool
 
+	// Options for GetChallenge*
+	includeAssignment bool
+
 	// Options for GetPlays
 	trackIDs       []string
 	trackInviteIDs []string
@@ -101,6 +104,12 @@ func WithUserIDs(ids ...string) Option {
 func WithPlayType(pt PlayType) Option {
 	return func(opts *options) {
 		opts.playType = pt
+	}
+}
+
+func WithAssignment() Option {
+	return func(opts *options) {
+		opts.includeAssignment = true
 	}
 }
 
