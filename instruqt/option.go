@@ -111,9 +111,9 @@ func WithPlayType(pt PlayType) Option {
 	}
 }
 
-// WithState sets the State filter for methods that support it.
+// WithStates sets the State filter for methods that support it.
 // Usage: GetSandboxes(WithState("active"))
-func WithState(states ...SandboxState) Option {
+func WithStates(states ...SandboxState) Option {
 	return func(opts *options) {
 		opts.states = states
 	}
