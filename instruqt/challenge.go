@@ -63,8 +63,12 @@ func (c *Client) GetChallenge(id string, opts ...Option) (ch Challenge, err erro
 		return ch, nil
 	}
 
+	// Initialize the filter with default values
+	filters := &options{
+		includeAssignment: false,
+	}
+
 	// Apply each option to modify the filter
-	var filters *options
 	for _, opt := range opts {
 		opt(filters)
 	}
@@ -78,7 +82,7 @@ func (c *Client) GetChallenge(id string, opts ...Option) (ch Challenge, err erro
 		return ch, err
 	}
 
-	if filters != nil && filters.includeAssignment {
+	if filters.includeAssignment {
 		cc, err := c.GetChallengeWithAssignment(id)
 		if err != nil {
 			return ch, err
@@ -105,8 +109,12 @@ func (c *Client) GetUserChallenge(userId string, id string, opts ...Option) (ch 
 		return ch, nil
 	}
 
+	// Initialize the filter with default values
+	filters := &options{
+		includeAssignment: false,
+	}
+
 	// Apply each option to modify the filter
-	var filters *options
 	for _, opt := range opts {
 		opt(filters)
 	}
@@ -121,7 +129,7 @@ func (c *Client) GetUserChallenge(userId string, id string, opts ...Option) (ch 
 		return ch, err
 	}
 
-	if filters != nil && filters.includeAssignment {
+	if filters.includeAssignment {
 		cc, err := c.GetChallengeWithAssignment(id)
 		if err != nil {
 			return ch, err
