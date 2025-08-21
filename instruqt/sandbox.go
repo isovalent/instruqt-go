@@ -176,7 +176,7 @@ func (c *Client) GetSandboxes(opts ...Option) (s []Sandbox, err error) {
 		"invite_ids":      trackInviteIds,
 		"pool_ids":        poolIds,
 		"user_name_or_id": graphql.String(userNameOrId),
-		"state":           filters.state,
+		"state":           filters.states,
 	}
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {

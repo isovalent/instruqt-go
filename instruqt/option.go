@@ -43,7 +43,7 @@ type options struct {
 	ordering       *Ordering
 
 	// Options for GetSandboxes
-	state   SandboxState
+	states  []SandboxState
 	poolIDs []string
 }
 
@@ -113,9 +113,9 @@ func WithPlayType(pt PlayType) Option {
 
 // WithState sets the State filter for methods that support it.
 // Usage: GetSandboxes(WithState("active"))
-func WithState(state SandboxState) Option {
+func WithState(states ...SandboxState) Option {
 	return func(opts *options) {
-		opts.state = state
+		opts.states = states
 	}
 }
 
