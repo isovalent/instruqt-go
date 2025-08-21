@@ -170,7 +170,7 @@ func (c *Client) GetSandboxes(opts ...Option) (s []Sandbox, err error) {
 		queryFilter.Pool_ids = filters.poolIDs
 	}
 	if filters.state != "" {
-		queryFilter.State = SandboxState(filters.state)
+		queryFilter.State = filters.state
 	}
 
 	var q sandboxesQuery
