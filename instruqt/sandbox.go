@@ -42,7 +42,18 @@ type sandboxQuery struct {
 type sandboxesQuery struct {
 	Sandboxes struct {
 		Nodes []Sandbox // A list of sandboxes retrieved by the query.
-	} `graphql:"sandboxes(teamSlug: $teamSlug)"`
+	} `graphql:"sandboxes(teamSlug: $teamSlug, filter: $filter)"`
+}
+
+// sandboxFilterInput represents the filter options for querying sandboxes.
+type SandboxFilterInput struct {
+	Track_ids       []string  // A list of track IDs to filter sandboxes.
+	Invite_ids      []string  // A list of invite IDs to filter sandboxes.
+	Pool_ids        []string  // A list of hot start pool IDs to filter sandboxes.
+	User_name_or_id string    // The user name or id
+	State           string    // The state of the sandbox (e.g., "active", "inactive").
+	From            time.Time // The start time for the sandbox filter.
+	To              time.Time // The end time for the sandbox filter.
 }
 
 // Sandbox represents a sandbox environment within Instruqt, including details
@@ -150,9 +161,24 @@ func (c *Client) GetSandboxes(opts ...Option) (s []Sandbox, err error) {
 		opt(filters)
 	}
 
+	var queryFilter SandboxFilterInput
+	if filters.trackIDs != nil {
+		queryFilter.Track_ids = filters.trackIDs
+	}
+	if filters.trackInviteIDs != nil {
+		queryFilter.Invite_ids = filters.trackInviteIDs
+	}
+	if filters.poolIDs != nil {
+		queryFilter.Pool_ids = filters.poolIDs
+	}
+	if filters.state != "" {
+		queryFilter.State = filters.state
+	}
+
 	var q sandboxesQuery
 	variables := map[string]interface{}{
 		"teamSlug": graphql.String(c.TeamSlug),
+		"filter":   queryFilter,
 	}
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
