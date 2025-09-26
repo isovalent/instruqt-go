@@ -34,17 +34,24 @@ type options struct {
 	includeAssignment bool
 
 	// Options for GetPlays
-	trackIDs       []string
-	trackInviteIDs []string
-	landingPageIDs []string
-	tags           []string
-	userIDs        []string
-	playType       PlayType
-	ordering       *Ordering
+	trackIDs               []string
+	trackInviteIDs         []string
+	landingPageIDs         []string
+	tags                   []string
+	userIDs                []string
+	playType               PlayType
+	customParameterFilters []CustomParameterFilter
+	ordering               *Ordering
 
 	// Options for GetSandboxes
 	states  []SandboxState
 	poolIDs []string
+}
+
+// CustomParameterFilter represents a filter for custom parameters in play reports.
+type CustomParameterFilter struct {
+	Key   string // The key of the custom parameter to filter by.
+	Value string // The value of the custom parameter to filter by.
 }
 
 // WithPlay is a functional option that configures methods to include the 'play' field in the query.
@@ -124,6 +131,17 @@ func WithStates(states ...SandboxState) Option {
 func WithPoolIDs(ids ...string) Option {
 	return func(opts *options) {
 		opts.poolIDs = ids
+	}
+}
+
+// WithCustomParameterFilter adds a custom parameter filter for methods that support it.
+// Usage: GetPlays(from, to, take, skip, WithCustomParameterFilter("key", "value")
+func WithCustomParameterFilter(key, value string) Option {
+	return func(opts *options) {
+		opts.customParameterFilters = append(opts.customParameterFilters, CustomParameterFilter{
+			Key:   key,
+			Value: value,
+		})
 	}
 }
 

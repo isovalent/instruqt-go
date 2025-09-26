@@ -105,12 +105,13 @@ type playItemQuery struct {
 func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts ...Option) ([]PlayReport, int, error) {
 	// Initialize the filter with default values
 	filters := &options{
-		trackIDs:       []string{},
-		trackInviteIDs: []string{},
-		landingPageIDs: []string{},
-		tags:           []string{},
-		userIDs:        []string{},
-		playType:       PlayTypeAll, // Default PlayType
+		trackIDs:               []string{},
+		trackInviteIDs:         []string{},
+		landingPageIDs:         []string{},
+		tags:                   []string{},
+		userIDs:                []string{},
+		playType:               PlayTypeAll, // Default PlayType
+		customParameterFilters: []CustomParameterFilter{},
 		ordering: &Ordering{
 			OrderBy:   OrderByCompletionPercent,
 			Direction: DirectionDesc,
@@ -146,6 +147,14 @@ func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts
 	userIds := make([]graphql.String, len(filters.userIDs))
 	for i, id := range filters.userIDs {
 		userIds[i] = graphql.String(id)
+	}
+
+	customParameterFilters := make([]CustomParameterFilter, len(filters.customParameterFilters))
+	for i, filter := range filters.customParameterFilters {
+		customParameterFilters[i] = CustomParameterFilter{
+			Key:   filter.Key,
+			Value: filter.Value,
+		}
 	}
 
 	// Prepare the variables map for the GraphQL query
