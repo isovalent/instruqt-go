@@ -34,7 +34,7 @@ const (
 // playQuery represents the GraphQL query structure for retrieving play reports
 // with specific filters like team slug, date range, and pagination.
 type playQuery struct {
-	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, trackIds: $trackIds, trackInviteIds: $trackInviteIds, landingPageIds: $landingPageIds, tags: $tags,  userIds: $userIds, pagination: {skip: $skip, take: $take}, playType: $playType, ordering: {orderBy: $orderBy, direction: $orderDirection}})"`
+	PlayReports `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, trackIds: $trackIds, trackInviteIds: $trackInviteIds, landingPageIds: $landingPageIds, tags: $tags,  userIds: $userIds, pagination: {skip: $skip, take: $take}, playType: $playType, customParameterFilters: $customParameterFilters, ordering: {orderBy: $orderBy, direction: $orderDirection}})"`
 }
 
 // Play is the domain model of a user's journey through a track.
@@ -159,19 +159,20 @@ func (c *Client) GetPlays(from time.Time, to time.Time, take int, skip int, opts
 
 	// Prepare the variables map for the GraphQL query
 	variables := map[string]interface{}{
-		"teamSlug":       graphql.String(c.TeamSlug),
-		"from":           from,
-		"to":             to,
-		"trackIds":       trackIds,
-		"trackInviteIds": trackInviteIds,
-		"landingPageIds": landingPageIds,
-		"tags":           tags,
-		"userIds":        userIds,
-		"take":           graphql.Int(take),
-		"skip":           graphql.Int(skip),
-		"playType":       filters.playType,
-		"orderBy":        graphql.String(filters.ordering.OrderBy),
-		"orderDirection": filters.ordering.Direction,
+		"teamSlug":               graphql.String(c.TeamSlug),
+		"from":                   from,
+		"to":                     to,
+		"trackIds":               trackIds,
+		"trackInviteIds":         trackInviteIds,
+		"landingPageIds":         landingPageIds,
+		"tags":                   tags,
+		"userIds":                userIds,
+		"take":                   graphql.Int(take),
+		"skip":                   graphql.Int(skip),
+		"playType":               filters.playType,
+		"customParameterFilters": customParameterFilters,
+		"orderBy":                graphql.String(filters.ordering.OrderBy),
+		"orderDirection":         filters.ordering.Direction,
 	}
 
 	var q playQuery

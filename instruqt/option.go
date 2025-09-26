@@ -50,8 +50,8 @@ type options struct {
 
 // CustomParameterFilter represents a filter for custom parameters in play reports.
 type CustomParameterFilter struct {
-	Key   string // The key of the custom parameter to filter by.
-	Value string // The value of the custom parameter to filter by.
+	Key   string `json:"key"`   // The key of the custom parameter to filter by.
+	Value string `json:"value"` // The value of the custom parameter to filter by.
 }
 
 // WithPlay is a functional option that configures methods to include the 'play' field in the query.
