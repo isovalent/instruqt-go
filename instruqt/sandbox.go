@@ -26,6 +26,11 @@ type sandboxVarQuery struct {
 	GetSandboxVariable SandboxVar `graphql:"getSandboxVariable(sandboxID: $sandboxID, hostname: $hostname, key: $key)"`
 }
 
+// sandboxVarSet represents the GraphQL mutation structure for setting a single
+type sandboxVarSet struct {
+	SetSandboxVariable SandboxVar `graphql:"setSandboxVariable(sandboxID: $sandboxID, hostname: $hostname, key: $key, value: $value)"`
+}
+
 // SandboxVar represents a key-value pair for a variable within a sandbox environment.
 type SandboxVar struct {
 	Key   string // The key of the sandbox variable.
@@ -82,12 +87,10 @@ type Sandbox struct {
 // Returns:
 //   - string: The value of the requested sandbox variable.
 //   - error: Any error encountered while retrieving the variable.
-func (c *Client) GetSandboxVariable(playID string, key string) (v string, err error) {
+func (c *Client) GetSandboxVariable(playID string, hostname string, key string) (v string, err error) {
 	if playID == "" || key == "" {
 		return v, nil
 	}
-
-	var hostname = "server"
 
 	var q sandboxVarQuery
 	variables := map[string]interface{}{
@@ -101,6 +104,28 @@ func (c *Client) GetSandboxVariable(playID string, key string) (v string, err er
 	}
 
 	return q.GetSandboxVariable.Value, nil
+}
+
+// SetSandboxVariable sets a specific variable in a sandbox environment
+// using the sandbox ID, variable key, and value.
+func (c *Client) SetSandboxVariable(playID string, hostname string, key string, value string) error {
+	if playID == "" || key == "" || value == "" {
+		return nil
+	}
+
+	var q sandboxVarSet
+	variables := map[string]interface{}{
+		"hostname":  graphql.String(hostname),
+		"sandboxID": graphql.String(playID),
+		"key":       graphql.String(key),
+		"value":     graphql.String(value),
+	}
+
+	if err := c.GraphQLClient.Mutate(c.Context, &q, variables); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetSandbox retrieves a sandbox by its ID.
