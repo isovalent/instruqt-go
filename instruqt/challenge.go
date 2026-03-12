@@ -38,6 +38,7 @@ type Challenge struct {
 	Slug   string `json:"slug"`   // The slug for the challenge, which is a human-readable identifier.
 	Title  string `json:"title"`  // The title of the challenge.
 	Teaser string `json:"teaser"` // The teaser of the challenge.
+	Type   string `json:"type"`   // The type of the challenge (e.g., "challenge", "quiz").
 	Index  int    `json:"index"`  // The index of the challenge in the track.
 	Status string `json:"status"` // The status of the challenge (e.g., "unlocked", "completed").
 	Track  struct {
