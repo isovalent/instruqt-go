@@ -17,6 +17,7 @@ package instruqt
 import (
 	"testing"
 
+	graphql "github.com/hasura/go-graphql-client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -149,6 +150,17 @@ func TestGetTrackUnlockedChallenge(t *testing.T) {
 		q := args.Get(1).(*challengesQuery)
 		q.Challenges = challenges
 	}).Return(nil)
+
+	for _, ch := range challenges {
+		ch := ch
+		mockClient.On("Query", mock.Anything, &userChallengeQuery{}, mock.MatchedBy(func(vars map[string]interface{}) bool {
+			id, ok := vars["challengeId"]
+			return ok && id == graphql.String(ch.Id)
+		})).Run(func(args mock.Arguments) {
+			q := args.Get(1).(*userChallengeQuery)
+			q.Challenge = ch
+		}).Return(nil)
+	}
 
 	challenge, err := client.GetTrackUnlockedChallenge(userID, trackID)
 
