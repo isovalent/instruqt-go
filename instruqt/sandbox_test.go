@@ -31,6 +31,7 @@ func TestGetSandboxVariable(t *testing.T) {
 	}
 
 	playID := "sandbox-123"
+	hostname := "server"
 	key := "MY_VAR"
 	expectedValue := "value123"
 
@@ -46,7 +47,7 @@ func TestGetSandboxVariable(t *testing.T) {
 		*q = queryResult
 	}).Return(nil)
 
-	value, err := client.GetSandboxVariable(playID, key)
+	value, err := client.GetSandboxVariable(playID, hostname, key)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedValue, value)
@@ -60,11 +61,12 @@ func TestGetSandboxVariable_Error(t *testing.T) {
 	}
 
 	playID := "sandbox-123"
+	hostname := "server"
 	key := "MY_VAR"
 
 	mockClient.On("Query", mock.Anything, &sandboxVarQuery{}, mock.Anything).Return(errors.New("graphql error"))
 
-	value, err := client.GetSandboxVariable(playID, key)
+	value, err := client.GetSandboxVariable(playID, hostname, key)
 
 	assert.Error(t, err)
 	assert.Empty(t, value)
