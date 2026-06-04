@@ -210,3 +210,30 @@ func (c *Client) GetSandboxes(opts ...Option) (s []Sandbox, err error) {
 
 	return q.Sandboxes.Nodes, nil
 }
+
+// stopSandboxMutation represents the GraphQL mutation to stop a sandbox.
+type stopSandboxMutation struct {
+	StopSandbox struct {
+		Id string
+	} `graphql:"stopSandbox(sandboxID: $sandboxID)"`
+}
+
+// StopSandbox stops a running sandbox by its ID.
+//
+// Parameters:
+//   - sandboxID: The unique identifier of the sandbox to stop.
+//
+// Returns:
+//   - error: Any error encountered while stopping the sandbox.
+func (c *Client) StopSandbox(sandboxID string) error {
+	var m stopSandboxMutation
+	variables := map[string]interface{}{
+		"sandboxID": graphql.String(sandboxID),
+	}
+
+	if err := c.GraphQLClient.Mutate(c.Context, &m, variables); err != nil {
+		return err
+	}
+
+	return nil
+}
