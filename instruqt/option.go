@@ -31,7 +31,8 @@ type options struct {
 	includeReviews    bool
 
 	// Options for GetChallenge*
-	includeAssignment bool
+	includeAssignment        bool
+	parseAssignmentVariables bool
 
 	// Options for GetPlays
 	trackIDs               []string
@@ -148,6 +149,15 @@ func WithCustomParameterFilter(key, value string) Option {
 func WithAssignment() Option {
 	return func(opts *options) {
 		opts.includeAssignment = true
+	}
+}
+
+// WithParsedAssignmentVariables configures challenge assignment retrieval to
+// replace runtime variable placeholders when Instruqt has user/sandbox context.
+func WithParsedAssignmentVariables() Option {
+	return func(opts *options) {
+		opts.includeAssignment = true
+		opts.parseAssignmentVariables = true
 	}
 }
 

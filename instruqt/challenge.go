@@ -84,7 +84,7 @@ func (c *Client) GetChallenge(id string, opts ...Option) (ch Challenge, err erro
 	}
 
 	if filters.includeAssignment {
-		cc, err := c.GetChallengeWithAssignment(id)
+		cc, err := c.GetChallengeWithAssignment(id, filters.parseAssignmentVariables)
 		if err != nil {
 			return ch, err
 		}
@@ -131,7 +131,7 @@ func (c *Client) GetUserChallenge(userId string, id string, opts ...Option) (ch 
 	}
 
 	if filters.includeAssignment {
-		cc, err := c.GetChallengeWithAssignment(id)
+		cc, err := c.GetChallengeWithAssignment(id, filters.parseAssignmentVariables)
 		if err != nil {
 			return ch, err
 		}
@@ -143,21 +143,27 @@ func (c *Client) GetUserChallenge(userId string, id string, opts ...Option) (ch 
 
 // ChallengeWithAssignment
 type ChallengeWithAssignment struct {
-	Id         string `graphql:"id"`         // The unique identifier for the challenge.
-	Assignment string `graphql:"assignment"` // The assignment details for the challenge.
+	Id         string `graphql:"id"`                                                              // The unique identifier for the challenge.
+	Assignment string `graphql:"assignment(parseAssignmentVariables: $parseAssignmentVariables)"` // The assignment details for the challenge.
 }
 
 // GetChallengeWithAssignment returns a ChallengeWithAssignment
-func (c *Client) GetChallengeWithAssignment(id string) (ch ChallengeWithAssignment, err error) {
+func (c *Client) GetChallengeWithAssignment(id string, parseAssignmentVariables ...bool) (ch ChallengeWithAssignment, err error) {
 	if id == "" {
 		return ch, nil
+	}
+
+	parseVariables := false
+	if len(parseAssignmentVariables) > 0 {
+		parseVariables = parseAssignmentVariables[0]
 	}
 
 	var q struct {
 		Challenge ChallengeWithAssignment `graphql:"challenge(challengeID: $challengeId)"`
 	}
 	variables := map[string]interface{}{
-		"challengeId": graphql.String(id),
+		"challengeId":              graphql.String(id),
+		"parseAssignmentVariables": graphql.Boolean(parseVariables),
 	}
 
 	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {

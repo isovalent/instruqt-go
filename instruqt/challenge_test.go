@@ -85,6 +85,29 @@ func TestGetUserChallenge(t *testing.T) {
 	assert.Equal(t, expectedChallenge, challenge)
 	mockClient.AssertExpectations(t)
 }
+
+func TestGetChallengeWithAssignmentParseAssignmentVariables(t *testing.T) {
+	mockClient := new(MockGraphQLClient)
+	client := &Client{
+		GraphQLClient: mockClient,
+	}
+
+	challengeID := "challenge-123"
+
+	mockClient.On("Query", mock.Anything, mock.Anything, mock.MatchedBy(func(vars map[string]any) bool {
+		parse, ok := vars["parseAssignmentVariables"].(graphql.Boolean)
+		if !ok || !bool(parse) {
+			return false
+		}
+		return vars["challengeId"] == graphql.String(challengeID)
+	})).Return(nil)
+
+	_, err := client.GetChallengeWithAssignment(challengeID, true)
+
+	assert.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
 func TestSkipToChallenge(t *testing.T) {
 	mockClient := new(MockGraphQLClient)
 	client := &Client{
