@@ -69,6 +69,48 @@ func TestGetInvite(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
+func TestGetInviteWithTracks(t *testing.T) {
+	mockClient := new(MockGraphQLClient)
+	client := &Client{
+		GraphQLClient: mockClient,
+	}
+
+	inviteID := "invite-123"
+	expectedTracks := []Track{
+		{Id: "track-1", Slug: "cilium-getting-started", Title: "Getting Started with Cilium"},
+		{Id: "track-2", Slug: "tetragon-getting-started", Title: "Getting Started with Tetragon"},
+	}
+	inviteQueryResult := inviteQuery{
+		TrackInvite: TrackInvite{
+			Id:          inviteID,
+			PublicTitle: "Test Invite",
+		},
+	}
+	tracksQueryResult := inviteTracksQuery{
+		TrackInvite: trackInviteTracks{
+			Id:     inviteID,
+			Tracks: expectedTracks,
+		},
+	}
+
+	mockClient.On("Query", mock.Anything, &inviteQuery{}, mock.Anything).Run(func(args mock.Arguments) {
+		q := args.Get(1).(*inviteQuery)
+		*q = inviteQueryResult
+	}).Return(nil)
+	mockClient.On("Query", mock.Anything, &inviteTracksQuery{}, mock.Anything).Run(func(args mock.Arguments) {
+		q := args.Get(1).(*inviteTracksQuery)
+		*q = tracksQueryResult
+	}).Return(nil)
+
+	invite, err := client.GetInvite(inviteID, WithTracks())
+
+	assert.NoError(t, err)
+	assert.Equal(t, inviteID, invite.Id)
+	assert.Equal(t, "Test Invite", invite.PublicTitle)
+	assert.Equal(t, expectedTracks, invite.Tracks)
+	mockClient.AssertExpectations(t)
+}
+
 func TestGetInvites(t *testing.T) {
 	mockClient := new(MockGraphQLClient)
 	client := &Client{

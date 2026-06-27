@@ -30,6 +30,9 @@ type options struct {
 	includeChallenges bool
 	includeReviews    bool
 
+	// Options for GetInvite*
+	includeTracks bool
+
 	// Options for GetChallenge*
 	includeAssignment        bool
 	parseAssignmentVariables bool
@@ -76,6 +79,14 @@ func WithChallenges() Option {
 func WithReviews() Option {
 	return func(opts *options) {
 		opts.includeReviews = true
+	}
+}
+
+// WithTracks is a functional option to include tracks.
+// Example usage: GetInvite("inviteID", WithTracks())
+func WithTracks() Option {
+	return func(opts *options) {
+		opts.includeTracks = true
 	}
 }
 
