@@ -131,7 +131,7 @@ func (c *Client) GetUserChallenge(userId string, id string, opts ...Option) (ch 
 	}
 
 	if filters.includeAssignment {
-		cc, err := c.GetChallengeWithAssignment(id, filters.parseAssignmentVariables)
+		cc, err := c.GetUserChallengeWithAssignment(userId, id, filters.parseAssignmentVariables)
 		if err != nil {
 			return ch, err
 		}
@@ -163,6 +163,33 @@ func (c *Client) GetChallengeWithAssignment(id string, parseAssignmentVariables 
 	}
 	variables := map[string]interface{}{
 		"challengeId":              graphql.String(id),
+		"parseAssignmentVariables": graphql.Boolean(parseVariables),
+	}
+
+	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+		return ch, err
+	}
+
+	return q.Challenge, nil
+}
+
+// GetUserChallengeWithAssignment returns a ChallengeWithAssignment scoped to a user.
+func (c *Client) GetUserChallengeWithAssignment(userId string, id string, parseAssignmentVariables ...bool) (ch ChallengeWithAssignment, err error) {
+	if id == "" {
+		return ch, nil
+	}
+
+	parseVariables := false
+	if len(parseAssignmentVariables) > 0 {
+		parseVariables = parseAssignmentVariables[0]
+	}
+
+	var q struct {
+		Challenge ChallengeWithAssignment `graphql:"challenge(userID: $userId, challengeID: $challengeId)"`
+	}
+	variables := map[string]interface{}{
+		"challengeId":              graphql.String(id),
+		"userId":                   graphql.String(userId),
 		"parseAssignmentVariables": graphql.Boolean(parseVariables),
 	}
 

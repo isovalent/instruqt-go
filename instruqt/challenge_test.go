@@ -108,6 +108,79 @@ func TestGetChallengeWithAssignmentParseAssignmentVariables(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
+func TestGetUserChallengeWithAssignmentParseAssignmentVariables(t *testing.T) {
+	mockClient := new(MockGraphQLClient)
+	client := &Client{
+		GraphQLClient: mockClient,
+	}
+
+	userID := "user-123"
+	challengeID := "challenge-123"
+
+	mockClient.On("Query", mock.Anything, mock.Anything, mock.MatchedBy(func(vars map[string]any) bool {
+		parse, ok := vars["parseAssignmentVariables"].(graphql.Boolean)
+		if !ok || !bool(parse) {
+			return false
+		}
+		return vars["challengeId"] == graphql.String(challengeID) &&
+			vars["userId"] == graphql.String(userID)
+	})).Return(nil)
+
+	_, err := client.GetUserChallengeWithAssignment(userID, challengeID, true)
+
+	assert.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetUserChallengeWithParsedAssignmentVariablesUsesUserContext(t *testing.T) {
+	mockClient := new(MockGraphQLClient)
+	client := &Client{
+		GraphQLClient: mockClient,
+	}
+
+	userID := "user-123"
+	challengeID := "challenge-123"
+	expectedChallenge := Challenge{
+		Id:     "challenge-123",
+		Slug:   "test-slug",
+		Title:  "Test Challenge",
+		Index:  1,
+		Status: "completed",
+	}
+
+	queryResult := userChallengeQuery{
+		Challenge: expectedChallenge,
+	}
+
+	mockClient.On("Query", mock.Anything, &userChallengeQuery{}, mock.Anything).Run(func(args mock.Arguments) {
+		q := args.Get(1).(*userChallengeQuery)
+		*q = queryResult
+	}).Return(nil)
+
+	mockClient.On("Query", mock.Anything, mock.Anything, mock.MatchedBy(func(vars map[string]any) bool {
+		parse, ok := vars["parseAssignmentVariables"].(graphql.Boolean)
+		if !ok || !bool(parse) {
+			return false
+		}
+		return vars["challengeId"] == graphql.String(challengeID) &&
+			vars["userId"] == graphql.String(userID)
+	})).Run(func(args mock.Arguments) {
+		q := args.Get(1).(*struct {
+			Challenge ChallengeWithAssignment `graphql:"challenge(userID: $userId, challengeID: $challengeId)"`
+		})
+		q.Challenge = ChallengeWithAssignment{
+			Id:         challengeID,
+			Assignment: "parsed assignment",
+		}
+	}).Return(nil)
+
+	challenge, err := client.GetUserChallenge(userID, challengeID, WithParsedAssignmentVariables())
+
+	assert.NoError(t, err)
+	assert.Equal(t, "parsed assignment", challenge.Assignment)
+	mockClient.AssertExpectations(t)
+}
+
 func TestSkipToChallenge(t *testing.T) {
 	mockClient := new(MockGraphQLClient)
 	client := &Client{
