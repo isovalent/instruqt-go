@@ -343,17 +343,53 @@ func (c *Client) GetTracks(opts ...Option) (tt []Track, err error) {
 //
 // Parameters:
 //   - trackId: The unique identifier of the track.
+//   - opts: Optional token settings, such as WithUserDetails.
 //
 // Returns:
 //   - string: The generated one-time play token.
 //   - error: Any error encountered while generating the token.
-func (c *Client) GenerateOneTimePlayToken(trackId string) (token string, err error) {
+func (c *Client) GenerateOneTimePlayToken(trackId string, opts ...Option) (token string, err error) {
+	options := &options{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	if options.userDetails != nil {
+		return c.generateOneTimePlayTokenWithUserDetails(trackId, *options.userDetails)
+	}
+
 	var m struct {
 		GenerateOneTimePlayToken string `graphql:"generateOneTimePlayToken(trackID: $trackID)"`
 	}
 
 	variables := map[string]any{
 		"trackID": graphql.String(trackId),
+	}
+
+	if err := c.GraphQLClient.Mutate(c.Context, &m, variables); err != nil {
+		return "", err
+	}
+
+	return m.GenerateOneTimePlayToken, nil
+}
+
+// OneTimeTokenUserDetailsInput contains the user details associated with a
+// one-time play token. Instruqt applies these details to the user who claims
+// the token.
+type OneTimeTokenUserDetailsInput struct {
+	FirstName string `json:"firstName,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
+	Email     string `json:"email,omitempty"`
+}
+
+func (c *Client) generateOneTimePlayTokenWithUserDetails(trackId string, userDetails OneTimeTokenUserDetailsInput) (token string, err error) {
+	var m struct {
+		GenerateOneTimePlayToken string `graphql:"generateOneTimePlayToken(trackID: $trackID, userDetails: $userDetails)"`
+	}
+
+	variables := map[string]any{
+		"trackID":     graphql.String(trackId),
+		"userDetails": userDetails,
 	}
 
 	if err := c.GraphQLClient.Mutate(c.Context, &m, variables); err != nil {

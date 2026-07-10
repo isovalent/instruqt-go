@@ -224,3 +224,42 @@ func TestGenerateOneTimePlayToken(t *testing.T) {
 	assert.Equal(t, expectedToken, token)
 	mockClient.AssertExpectations(t)
 }
+
+func TestGenerateOneTimePlayTokenWithUserDetails(t *testing.T) {
+	mockClient := new(MockGraphQLClient)
+	client := &Client{
+		GraphQLClient: mockClient,
+	}
+
+	trackID := "track-123"
+	userDetails := OneTimeTokenUserDetailsInput{FirstName: "Ada", LastName: "Lovelace", Email: "ada@example.com"}
+	expectedToken := "identity-bound-one-time-play-token"
+
+	mutationResult := struct {
+		GenerateOneTimePlayToken string `graphql:"generateOneTimePlayToken(trackID: $trackID, userDetails: $userDetails)"`
+	}{
+		GenerateOneTimePlayToken: expectedToken,
+	}
+	variables := map[string]any{
+		"trackID":     graphql.String(trackID),
+		"userDetails": userDetails,
+	}
+	query, err := graphql.ConstructMutation(&mutationResult, variables)
+	assert.NoError(t, err)
+	assert.Contains(t, query, "$userDetails:OneTimeTokenUserDetailsInput!")
+
+	mockClient.On("Mutate", mock.Anything, mock.AnythingOfType("*struct { GenerateOneTimePlayToken string \"graphql:\\\"generateOneTimePlayToken(trackID: $trackID, userDetails: $userDetails)\\\"\" }"), mock.MatchedBy(func(variables map[string]any) bool {
+		return variables["trackID"] == graphql.String(trackID) && variables["userDetails"] == userDetails
+	})).Run(func(args mock.Arguments) {
+		m := args.Get(1).(*struct {
+			GenerateOneTimePlayToken string `graphql:"generateOneTimePlayToken(trackID: $trackID, userDetails: $userDetails)"`
+		})
+		*m = mutationResult
+	}).Return(nil)
+
+	token, err := client.GenerateOneTimePlayToken(trackID, WithUserDetails(userDetails.FirstName, userDetails.LastName, userDetails.Email))
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedToken, token)
+	mockClient.AssertExpectations(t)
+}
