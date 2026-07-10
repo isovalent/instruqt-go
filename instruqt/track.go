@@ -45,6 +45,15 @@ type tracksQuery struct {
 	Tracks []Track `graphql:"tracks(organizationSlug: $organizationSlug)"`
 }
 
+// tracksInMaintenanceQuery deliberately selects only the fields needed to
+// identify tracks that are temporarily unavailable.
+type tracksInMaintenanceQuery struct {
+	Tracks []struct {
+		Slug        string
+		Maintenance bool
+	} `graphql:"tracks(organizationSlug: $organizationSlug)"`
+}
+
 // Track represents the data structure for an Instruqt track.
 type Track struct {
 	Slug        string    // The slug identifier for the track.
@@ -337,6 +346,29 @@ func (c *Client) GetTracks(opts ...Option) (tt []Track, err error) {
 	}
 
 	return q.Tracks, nil
+}
+
+// GetTracksInMaintenance returns the slugs of tracks currently placed in
+// maintenance mode. Its GraphQL query intentionally requests only slug and
+// maintenance, making it suitable for enriching otherwise cached catalogs.
+func (c *Client) GetTracksInMaintenance() ([]string, error) {
+	var q tracksInMaintenanceQuery
+	variables := map[string]interface{}{
+		"organizationSlug": graphql.String(c.TeamSlug),
+	}
+
+	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+		return nil, err
+	}
+
+	slugs := make([]string, 0)
+	for _, track := range q.Tracks {
+		if track.Maintenance {
+			slugs = append(slugs, track.Slug)
+		}
+	}
+
+	return slugs, nil
 }
 
 // GenerateOneTimePlayToken generates a one-time play token for a specific track.

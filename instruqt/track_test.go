@@ -196,6 +196,33 @@ func TestGetTracks(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
+func TestGetTracksInMaintenance(t *testing.T) {
+	mockClient := new(MockGraphQLClient)
+	client := &Client{
+		GraphQLClient: mockClient,
+		TeamSlug:      "isovalent",
+	}
+
+	mockClient.On("Query", mock.Anything, &tracksInMaintenanceQuery{}, mock.MatchedBy(func(vars map[string]interface{}) bool {
+		return vars["organizationSlug"] == graphql.String("isovalent")
+	})).Run(func(args mock.Arguments) {
+		q := args.Get(1).(*tracksInMaintenanceQuery)
+		q.Tracks = []struct {
+			Slug        string
+			Maintenance bool
+		}{
+			{Slug: "available-track", Maintenance: false},
+			{Slug: "maintenance-track", Maintenance: true},
+		}
+	}).Return(nil)
+
+	slugs, err := client.GetTracksInMaintenance()
+
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"maintenance-track"}, slugs)
+	mockClient.AssertExpectations(t)
+}
+
 func TestGenerateOneTimePlayToken(t *testing.T) {
 	mockClient := new(MockGraphQLClient)
 	client := &Client{
