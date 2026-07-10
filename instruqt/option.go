@@ -23,6 +23,9 @@ type Option func(*options)
 // options holds configuration options for all methods.
 // It includes flags and parameters that can be used by different methods.
 type options struct {
+	// Options for GenerateOneTimePlayToken
+	userDetails *OneTimeTokenUserDetailsInput
+
 	// Options for GetReview
 	includePlay bool
 
@@ -50,6 +53,18 @@ type options struct {
 	// Options for GetSandboxes
 	states  []SandboxState
 	poolIDs []string
+}
+
+// WithUserDetails associates user details with a generated one-time play token.
+// Usage: GenerateOneTimePlayToken("trackID", WithUserDetails("Ada", "Lovelace", "ada@example.com"))
+func WithUserDetails(firstName, lastName, email string) Option {
+	return func(opts *options) {
+		opts.userDetails = &OneTimeTokenUserDetailsInput{
+			FirstName: firstName,
+			LastName:  lastName,
+			Email:     email,
+		}
+	}
 }
 
 // CustomParameterFilter represents a filter for custom parameters in play reports.
