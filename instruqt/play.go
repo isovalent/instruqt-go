@@ -83,6 +83,64 @@ type PlayReport struct {
 	}
 }
 
+// hotStartPlayReport is the small subset of a play report needed for hot-start
+// usage reporting. Keeping this query separate avoids fetching user, activity,
+// review, and challenge data for every play.
+type hotStartPlayReport struct {
+	Id                  string
+	Track               struct{ Slug, Title, Status string }
+	CompletionPercent   float64
+	TotalChallenges     int
+	CompletedChallenges int
+	TimeSpent           int
+	Mode                string
+	StartedAt           time.Time
+}
+
+type hotStartPlayReportsQuery struct {
+	PlayReports struct {
+		Items      []hotStartPlayReport
+		TotalItems int
+	} `graphql:"playReports(input: {teamSlug: $teamSlug, dateRangeFilter: {from: $from, to: $to}, trackIds: $trackIds, trackInviteIds: $trackInviteIds, landingPageIds: $landingPageIds, tags: $tags, userIds: $userIds, pagination: {skip: $skip, take: $take}, playType: $playType, customParameterFilters: $customParameterFilters, ordering: {orderBy: $orderBy, direction: $orderDirection}})"`
+}
+
+// GetHotStartPlayReports retrieves only the fields required to attribute hot
+// start usage and estimate consumed hours.
+func (c *Client) GetHotStartPlayReports(from time.Time, to time.Time, take int, skip int) ([]PlayReport, int, error) {
+	variables := map[string]interface{}{
+		"teamSlug":               graphql.String(c.TeamSlug),
+		"from":                   from,
+		"to":                     to,
+		"trackIds":               []graphql.String{},
+		"trackInviteIds":         []graphql.String{},
+		"landingPageIds":         []graphql.String{},
+		"tags":                   []graphql.String{},
+		"userIds":                []graphql.String{},
+		"take":                   graphql.Int(take),
+		"skip":                   graphql.Int(skip),
+		"playType":               PlayTypeAll,
+		"customParameterFilters": []CustomParameterFilter{},
+		"orderBy":                graphql.String(OrderByCompletionPercent),
+		"orderDirection":         DirectionDesc,
+	}
+
+	var q hotStartPlayReportsQuery
+	if err := c.GraphQLClient.Query(c.Context, &q, variables); err != nil {
+		return nil, 0, fmt.Errorf("GraphQL query failed: %w", err)
+	}
+	result := make([]PlayReport, 0, len(q.PlayReports.Items))
+	for _, play := range q.PlayReports.Items {
+		result = append(result, PlayReport{
+			Id:                play.Id,
+			Track:             SandboxTrack{Slug: play.Track.Slug, Title: play.Track.Title, Status: play.Track.Status},
+			CompletionPercent: play.CompletionPercent, TotalChallenges: play.TotalChallenges,
+			CompletedChallenges: play.CompletedChallenges, TimeSpent: play.TimeSpent,
+			Mode: play.Mode, StartedAt: play.StartedAt,
+		})
+	}
+	return result, q.PlayReports.TotalItems, nil
+}
+
 // playItemQuery represents the GraphQL query structure for retrieving a single play report
 type playItemQuery struct {
 	PlayReportItem PlayReport `graphql:"playReportItem(playID: $playID, input: {teamSlug: $teamSlug, playType: $playType})"`
