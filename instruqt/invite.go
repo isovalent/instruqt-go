@@ -36,7 +36,7 @@ type TrackInvite struct {
 	Title                              string    // The internal title of the track invite.
 	PublicTitle                        string    // The public title of the track invite.
 	PublicDescription                  string    // The public description of the track invite.
-	AccessSetting                      string    // The access setting for the invite.
+	AccessSetting                      string    // The access setting: anyone, anyone_leaving_details, or allowed_emails_only.
 	InviteLimit                        int       // The maximum number of claims allowed for the invite.
 	InviteCount                        int       // The number of times the invite has been used.
 	ClaimCount                         int       // The number of claims associated with the invite.
@@ -45,7 +45,7 @@ type TrackInvite struct {
 	Created                            time.Time // The timestamp when the invite was created.
 	Last_Updated                       time.Time // The timestamp when the invite was last updated.
 	AllowAnonymous                     bool      // Whether anonymous users can claim the invite.
-	AllowedEmailAddresses              []string  // The email addresses allowed to claim the invite.
+	AllowedEmailAddresses              []string  // Exact email addresses and/or domains allowed to claim the invite.
 	AllowedEmailAddressesOnly          bool      // Whether only explicitly allowed email addresses can claim the invite.
 	CurrentUserAllowed                 bool      // Whether the current API user can claim the invite.
 	CurrentUserClaimed                 bool      // Whether the current API user has claimed the invite.
